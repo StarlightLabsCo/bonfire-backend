@@ -1,20 +1,46 @@
 import { ServerWebSocket } from 'bun';
-import { createInstance } from './handlers/instance';
-import { generateAudio } from './elevenlabs';
+import db from './db';
+import { createInstanceHandler } from './handlers/instance';
+import { welcomeHandler } from './handlers/welcome';
 
-const handlers: {
-  [key: string]: (
-    ws: ServerWebSocket<{ authToken: string }>,
-    data: any,
-  ) => void;
-} = {
-  'create-instance': createInstance,
+export type WebSocketData = {
+  userId: string;
 };
 
-const server = Bun.serve<{ authToken: string }>({
+const handlers: {
+  [key: string]: (ws: ServerWebSocket<WebSocketData>, data: any) => void;
+} = {
+  welcome: welcomeHandler,
+  'create-instance': createInstanceHandler,
+};
+
+const server = Bun.serve<WebSocketData>({
   port: 3001,
-  fetch(req, server) {
-    const success = server.upgrade(req);
+  async fetch(req, server) {
+    // Authorization
+    const sessionToken = req.headers
+      .get('cookie')
+      ?.split('; ')
+      .find((row) => row.startsWith('next-auth.session-token='));
+
+    const tokenValue = sessionToken?.split('=')[1];
+
+    const session = await db.session.findUnique({
+      where: {
+        sessionToken: tokenValue,
+      },
+    });
+
+    if (!session) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    // Upgrade to WebSocket
+    const success = server.upgrade(req, {
+      data: {
+        userId: session.userId,
+      },
+    });
     if (success) {
       // Bun automatically returns a 101 Switching Protocols
       // if the upgrade succeeds
@@ -26,26 +52,7 @@ const server = Bun.serve<{ authToken: string }>({
   },
   websocket: {
     async open(ws) {
-      console.log('Websocket opened: ' + ws);
-
-      const audio = await generateAudio(
-        'Hello, are you ready for an adventure?',
-        '1Tbay5PQasIwgSzUscmj',
-      );
-
-      if (!audio) {
-        console.error('No audio returned');
-        return;
-      }
-
-      ws.send(
-        JSON.stringify({
-          type: 'audio',
-          payload: {
-            audio: audio,
-          },
-        }),
-      );
+      console.log('Websocket opened. User ID: ' + ws.data.userId);
     },
 
     async message(ws, message) {

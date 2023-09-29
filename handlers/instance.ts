@@ -1,8 +1,9 @@
 import { ServerWebSocket } from 'bun';
+import { WebSocketData } from '..';
 import prisma from '../db';
 
-async function createInstance(
-  ws: ServerWebSocket<{ authToken: string }>,
+async function createInstanceHandler(
+  ws: ServerWebSocket<WebSocketData>,
   data: {
     type: 'createInstance';
     payload: { userId: string; description: string };
@@ -40,4 +41,4 @@ async function createInstance(
   }
 }
 
-export { createInstance };
+export { createInstanceHandler };
