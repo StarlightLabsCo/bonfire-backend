@@ -1,5 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import { createInstance } from './handlers/instance';
+import { generateAudio } from './elevenlabs';
 
 const handlers: {
   [key: string]: (
@@ -26,6 +27,25 @@ const server = Bun.serve<{ authToken: string }>({
   websocket: {
     async open(ws) {
       console.log('Websocket opened: ' + ws);
+
+      const audio = await generateAudio(
+        'Hello, are you ready for an adventure?',
+        '1Tbay5PQasIwgSzUscmj',
+      );
+
+      if (!audio) {
+        console.error('No audio returned');
+        return;
+      }
+
+      ws.send(
+        JSON.stringify({
+          type: 'audio',
+          payload: {
+            audio: audio,
+          },
+        }),
+      );
     },
 
     async message(ws, message) {
