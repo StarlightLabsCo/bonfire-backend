@@ -1,5 +1,5 @@
 import { ServerWebSocket } from 'bun';
-import { generateAudio } from '../elevenlabs';
+import { audioStreamRequest } from '../elevenlabs';
 import { WebSocketData } from '..';
 import db from '../db';
 
@@ -15,27 +15,11 @@ async function welcomeHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
     return;
   }
 
-  const audio = await generateAudio(
+  await audioStreamRequest(
+    ws,
     user.name
-      ? `Ah, hello ${
-          user.name.split(' ')[0]
-        }.<break time="0.5s" /> Are you ready for an adventure?`
-      : 'Ah hello there. <break time="0.5s" /> Are you ready for an adventure?',
-    '1Tbay5PQasIwgSzUscmj',
-  );
-
-  if (!audio) {
-    console.error('No audio returned');
-    return;
-  }
-
-  ws.send(
-    JSON.stringify({
-      type: 'audio',
-      payload: {
-        audio: audio,
-      },
-    }),
+      ? `Ah, hello ${user.name.split(' ')[0]}. Are you ready for an adventure?`
+      : 'Ah hello there. Are you ready for an adventure?',
   );
 }
 

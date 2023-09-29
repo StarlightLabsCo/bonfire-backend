@@ -69,6 +69,10 @@ const server = Bun.serve<WebSocketData>({
         console.error('No handler found for ' + data.type);
       }
     },
+
+    async close(ws) {
+      console.log('Websocket closed. User ID: ' + ws.data.userId);
+    },
   },
 });
 

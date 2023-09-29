@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import db from '../db';
-import { generateAudio } from '../elevenlabs';
+import { audioStreamRequest } from '../elevenlabs';
 import { openai } from '../openai';
 import { WebSocketData } from '..';
 import { MessageRole } from '@prisma/client';
@@ -53,7 +53,7 @@ async function beginStory(
 
   const response = await openai.chat.completions.create({
     messages: messages,
-    model: 'gpt-4',
+    model: 'gpt-3.5-turbo',
     functions: [
       {
         name: 'introduce_story_and_characters',
@@ -100,29 +100,17 @@ async function beginStory(
 
     ws.send(JSON.stringify({ type: 'message-append', payload: message }));
 
-    const audio = await generateAudio(
-      data.introduction,
-      '1Tbay5PQasIwgSzUscmj',
-    );
-
-    if (!audio) {
-      console.error('No audio returned');
+    if (!process.env.NARRATOR_VOICE_ID) {
+      console.error('No narrator voice ID');
       return;
     }
+
+    await audioStreamRequest(ws, data.introduction);
 
     ws.send(
       JSON.stringify({
         type: 'instance-created',
         payload: { instanceId: instance.id },
-      }),
-    );
-
-    ws.send(
-      JSON.stringify({
-        type: 'audio',
-        payload: {
-          audio: audio,
-        },
       }),
     );
   } else {
@@ -154,7 +142,7 @@ async function continueStory(
 
   const response = await openai.chat.completions.create({
     messages: messages,
-    model: 'gpt-4',
+    model: 'gpt-3.5-turbo',
     functions: [
       {
         name: 'continue_story',
@@ -203,21 +191,12 @@ async function continueStory(
 
     ws.send(JSON.stringify({ type: 'message-append', payload: message }));
 
-    const audio = await generateAudio(data.story, '1Tbay5PQasIwgSzUscmj');
-
-    if (!audio) {
-      console.error('No audio returned');
+    if (!process.env.NARRATOR_VOICE_ID) {
+      console.error('No narrator voice ID');
       return;
     }
 
-    ws.send(
-      JSON.stringify({
-        type: 'audio',
-        payload: {
-          audio: audio,
-        },
-      }),
-    );
+    await audioStreamRequest(ws, data.story);
   } else {
     console.error('No function call');
     console.log(choice);
