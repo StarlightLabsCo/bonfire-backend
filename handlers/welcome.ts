@@ -17,8 +17,10 @@ async function welcomeHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
 
   const audio = await generateAudio(
     user.name
-      ? `Hello ${user.name.split(' ')[0]} are you ready for an adventure?`
-      : 'Hello are you ready for an adventure?',
+      ? `Ah, hello ${
+          user.name.split(' ')[0]
+        }.<break time="0.5s" /> Are you ready for an adventure?`
+      : 'Ah hello there. <break time="0.5s" /> Are you ready for an adventure?',
     '1Tbay5PQasIwgSzUscmj',
   );
 

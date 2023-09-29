@@ -1,6 +1,7 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
 import prisma from '../db';
+import { beginStory } from '../core/narrator';
 
 async function createInstanceHandler(
   ws: ServerWebSocket<WebSocketData>,
@@ -23,12 +24,7 @@ async function createInstanceHandler(
 
     console.log('Created instance: ' + instance.id);
 
-    ws.send(
-      JSON.stringify({
-        type: 'instance-created',
-        payload: { instanceId: instance.id },
-      }),
-    );
+    beginStory(ws, instance.id);
   } catch (err) {
     console.error(err);
 

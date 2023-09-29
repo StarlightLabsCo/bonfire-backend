@@ -2,6 +2,7 @@ import { ServerWebSocket } from 'bun';
 import db from './db';
 import { createInstanceHandler } from './handlers/instance';
 import { welcomeHandler } from './handlers/welcome';
+import { addPlayerMessage } from './handlers/messages';
 
 export type WebSocketData = {
   userId: string;
@@ -12,6 +13,7 @@ const handlers: {
 } = {
   welcome: welcomeHandler,
   'create-instance': createInstanceHandler,
+  'add-player-message': addPlayerMessage,
 };
 
 const server = Bun.serve<WebSocketData>({
