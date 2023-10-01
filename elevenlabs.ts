@@ -74,6 +74,9 @@ async function audioStreamRequest(
   elevenLabsWS.addEventListener('message', (event) => {
     console.log('Received message from 11 labs.');
     ws.send(event.data);
+
+    const data = JSON.parse(event.data.toString());
+    console.log(`isFinal: `, data.isFinal);
   });
   elevenLabsWS.addEventListener('close', () => {
     console.log('Disconnected from 11 labs.');

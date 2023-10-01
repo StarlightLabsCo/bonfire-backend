@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import db from '../db';
-import { initElevenLabsWs } from '../elevenlabs';
+import { audioStreamRequest, initElevenLabsWs } from '../elevenlabs';
 import { openai } from '../openai';
 import { WebSocketData } from '..';
 import { MessageRole } from '@prisma/client';
@@ -132,6 +132,8 @@ async function beginStory(
   buffer = buffer.replace(/^\{\s*.*?"introduction":\s*"/, '');
   buffer = buffer.replace(/"\s*\}\s*$/, '');
 
+  audioStreamRequest(ws, buffer); // TODO: remove when eleven labs streamig input is working
+
   ws.send(JSON.stringify({ type: 'message-set', payload: buffer }));
 
   await db.message.create({
@@ -201,18 +203,69 @@ async function continueStory(
   ws.send(JSON.stringify({ type: 'message-add' }));
 
   // TODO: add openai code here
+  let buffer = '';
 
-  // await db.message.create({
-  //   data: {
-  //     instance: {
-  //       connect: {
-  //         id: instanceId,
-  //       },
-  //     },
-  //     content: buffer,
-  //     role: MessageRole.assistant,
-  //   },
-  // });
+  // TODO: uncomment this once eleven labs is working
+  // let elevenLabsWS = await initElevenLabsWs(ws);
+
+  for await (const chunk of response) {
+    let args = chunk.choices[0].delta.function_call?.arguments;
+
+    try {
+      if (args) {
+        buffer += args;
+
+        if ('{\n  "story": "'.includes(buffer)) {
+          console.log('skipping beginning');
+          continue;
+        }
+
+        if (args.includes('}')) {
+          console.log('skipping end');
+          continue;
+        }
+
+        ws.send(
+          JSON.stringify({
+            type: 'message-update',
+            payload: args,
+          }),
+        );
+
+        // TODO: uncomment this once eleven labs is working
+        // elevenLabsWS.send(JSON.stringify({ text: args }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // TODO: uncomment this once eleven labs is working
+  // elevenLabsWS.send(
+  //   JSON.stringify({
+  //     text: '',
+  //   }),
+  // );
+
+  // Clean up and send final - removing the stray ending " in the process
+  buffer = buffer.replace(/^\{\s*.*?"story":\s*"/, '');
+  buffer = buffer.replace(/"\s*\}\s*$/, '');
+
+  audioStreamRequest(ws, buffer); // TODO: remove when eleven labs streamig input is working
+
+  ws.send(JSON.stringify({ type: 'message-set', payload: buffer }));
+
+  await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: buffer,
+      role: MessageRole.assistant,
+    },
+  });
 }
 
 export { beginStory, continueStory };
