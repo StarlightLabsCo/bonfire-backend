@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import db from '../db';
-import { audioStreamRequest } from '../elevenlabs';
+import { initElevenLabsWs } from '../elevenlabs';
 import { openai } from '../openai';
 import { WebSocketData } from '..';
 import { MessageRole } from '@prisma/client';
@@ -54,6 +54,7 @@ async function beginStory(
   const response = await openai.chat.completions.create({
     messages: messages,
     model: 'gpt-3.5-turbo',
+    stream: true,
     functions: [
       {
         name: 'introduce_story_and_characters',
@@ -74,51 +75,84 @@ async function beginStory(
     },
   });
 
-  if (!response.choices) {
-    console.error('No response from OpenAI');
-    return;
-  }
+  ws.send(
+    JSON.stringify({
+      type: 'instance-created',
+      payload: { instanceId: instance.id },
+    }),
+  );
 
-  const choice = response.choices[0];
-  if (choice.message.function_call) {
-    const function_call = choice.message.function_call;
+  ws.send(JSON.stringify({ type: 'message-add' }));
 
-    const data = JSON.parse(function_call.arguments);
+  let buffer = '';
 
-    // Create message
-    const message = await db.message.create({
-      data: {
-        instance: {
-          connect: {
-            id: instanceId,
-          },
-        },
-        content: data.introduction,
-        role: MessageRole.assistant,
-      },
-    });
+  // TODO: uncomment this once eleven labs is working
+  // let elevenLabsWS = await initElevenLabsWs(ws);
 
-    ws.send(JSON.stringify({ type: 'message-append', payload: message }));
+  for await (const chunk of response) {
+    let args = chunk.choices[0].delta.function_call?.arguments;
 
-    if (!process.env.NARRATOR_VOICE_ID) {
-      console.error('No narrator voice ID');
-      return;
+    try {
+      if (args) {
+        buffer += args;
+
+        if ('{\n  "introduction": "'.includes(buffer)) {
+          console.log('skipping beginning');
+          continue;
+        }
+
+        if (args.includes('}')) {
+          console.log('skipping end');
+          continue;
+        }
+
+        ws.send(
+          JSON.stringify({
+            type: 'message-update',
+            payload: args,
+          }),
+        );
+
+        // TODO: uncomment this once eleven labs is working
+        // elevenLabsWS.send(JSON.stringify({ text: args }));
+      }
+    } catch (err) {
+      console.error(err);
     }
-
-    await audioStreamRequest(ws, data.introduction);
-
-    ws.send(
-      JSON.stringify({
-        type: 'instance-created',
-        payload: { instanceId: instance.id },
-      }),
-    );
-  } else {
-    console.error('No function call');
-    console.log(choice);
-    return;
   }
+
+  // TODO: uncomment this once eleven labs is working
+  // elevenLabsWS.send(
+  //   JSON.stringify({
+  //     text: '',
+  //   }),
+  // );
+
+  // Clean up and send final - removing the stray ending " in the process
+  buffer = buffer.replace(/^\{\s*.*?"introduction":\s*"/, '');
+  buffer = buffer.replace(/"\s*\}\s*$/, '');
+
+  ws.send(JSON.stringify({ type: 'message-set', payload: buffer }));
+
+  await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: buffer,
+      role: MessageRole.assistant,
+    },
+  });
 }
+
+// TODO:
+// - eleven labs currently requires spaces at the end of words, which sucks because openai tokens have spaces at the beginning of words
+// meaning you can't stream the output of openai directly to eleven labs
+// - eleven labs said they'd fix this though, and the code here should work for that once they do
+// - one other thing to keep in mind is that we're sending some extra characters to elven labs, mainly just a " at the end of the message but I don't think that'll effect things
+// - once i get eleven labs stuff working, i can just copy and paste it to continue story
 
 async function continueStory(
   ws: ServerWebSocket<WebSocketData>,
@@ -143,6 +177,7 @@ async function continueStory(
   const response = await openai.chat.completions.create({
     messages: messages,
     model: 'gpt-3.5-turbo',
+    stream: true,
     functions: [
       {
         name: 'continue_story',
@@ -163,45 +198,21 @@ async function continueStory(
     },
   });
 
-  if (!response.choices) {
-    console.error('No response from OpenAI');
-    return;
-  }
+  ws.send(JSON.stringify({ type: 'message-add' }));
 
-  const choice = response.choices[0];
-  if (choice.message.function_call) {
-    const function_call = choice.message.function_call;
-    console.log(function_call.arguments);
+  // TODO: add openai code here
 
-    const data = JSON.parse(function_call.arguments);
-    console.log(data);
-
-    // Create message
-    const message = await db.message.create({
-      data: {
-        instance: {
-          connect: {
-            id: instanceId,
-          },
-        },
-        content: data.story,
-        role: MessageRole.assistant,
-      },
-    });
-
-    ws.send(JSON.stringify({ type: 'message-append', payload: message }));
-
-    if (!process.env.NARRATOR_VOICE_ID) {
-      console.error('No narrator voice ID');
-      return;
-    }
-
-    await audioStreamRequest(ws, data.story);
-  } else {
-    console.error('No function call');
-    console.log(choice);
-    return;
-  }
+  // await db.message.create({
+  //   data: {
+  //     instance: {
+  //       connect: {
+  //         id: instanceId,
+  //       },
+  //     },
+  //     content: buffer,
+  //     role: MessageRole.assistant,
+  //   },
+  // });
 }
 
 export { beginStory, continueStory };
