@@ -6,7 +6,7 @@ import db from '../db';
 async function welcomeHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
   const user = await db.user.findUnique({
     where: {
-      id: ws.data.userId,
+      id: ws.data.webSocketToken?.userId,
     },
   });
 

@@ -76,7 +76,7 @@ async function generateImageFromStory(story: string) {
   const data = JSON.parse(response.choices[0].message.function_call.arguments);
   console.log(data);
 
-  const imageURL = generateImage(data.prompt, data.negative_prompt);
+  const imageURL = await generateImage(data.prompt, data.negative_prompt);
   console.log(imageURL);
 
   return imageURL;

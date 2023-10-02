@@ -47,6 +47,15 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model WebSocketAuthenticationToken {
+  id      String   @id @default(cuid())
+  token   String   @unique
+  expires DateTime
+
+  userId String
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -54,8 +63,9 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  accounts Account[]
-  sessions Session[]
+  accounts                     Account[]
+  sessions                     Session[]
+  webSocketAuthenticationToken WebSocketAuthenticationToken[]
 
   instances Instance[]
 
