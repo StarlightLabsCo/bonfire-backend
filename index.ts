@@ -18,7 +18,7 @@ const handlers: {
 };
 
 const server = Bun.serve<WebSocketData>({
-  port: 3001,
+  port: process.env.PORT ? parseInt(process.env.PORT) : 80,
   async fetch(req, server) {
     // Authorization
     const sessionToken = req.headers
