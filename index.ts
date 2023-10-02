@@ -21,10 +21,16 @@ const server = Bun.serve<WebSocketData>({
   port: process.env.PORT ? parseInt(process.env.PORT) : 80,
   async fetch(req, server) {
     // Authorization
+    console.log(req.headers.get('cookie'));
+
     const sessionToken = req.headers
       .get('cookie')
       ?.split('; ')
       .find((row) => row.startsWith('next-auth.session-token='));
+
+    if (!sessionToken) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
     const tokenValue = sessionToken?.split('=')[1];
 
