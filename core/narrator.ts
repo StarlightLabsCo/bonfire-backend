@@ -1,9 +1,11 @@
 import { ServerWebSocket } from 'bun';
-import db from '../db';
-import { audioStreamRequest, initElevenLabsWs } from '../elevenlabs';
-import { openai } from '../openai';
-import { WebSocketData } from '..';
 import { MessageRole } from '@prisma/client';
+import db from '../db';
+import { openai } from '../openai';
+import { audioStreamRequest, initElevenLabsWs } from '../elevenlabs';
+import { generateImage, generateImageFromStory } from '../sdxl';
+
+import { WebSocketData } from '..';
 
 type Message = {
   role: 'system' | 'assistant' | 'user' | 'function';
@@ -147,6 +149,32 @@ async function beginStory(
       role: MessageRole.assistant,
     },
   });
+
+  const imageURL = await generateImageFromStory(buffer);
+
+  if (!imageURL) {
+    console.error('No image URL found');
+    return;
+  }
+
+  ws.send(
+    JSON.stringify({
+      type: 'image',
+      payload: imageURL,
+    }),
+  );
+
+  await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: (imageURL as string[])[0],
+      role: MessageRole.function,
+    },
+  });
 }
 
 // TODO:
@@ -170,10 +198,18 @@ async function continueStory(
   });
 
   const messages = dbMessages.map((message) => {
-    return {
-      role: message.role,
-      content: message.content,
-    };
+    if (message.role === MessageRole.function) {
+      return {
+        role: message.role,
+        content: message.content,
+        name: 'generate_image',
+      };
+    } else {
+      return {
+        role: message.role,
+        content: message.content,
+      };
+    }
   });
 
   const response = await openai.chat.completions.create({
@@ -264,6 +300,27 @@ async function continueStory(
       },
       content: buffer,
       role: MessageRole.assistant,
+    },
+  });
+
+  const imageURL = await generateImageFromStory(buffer);
+
+  ws.send(
+    JSON.stringify({
+      type: 'image',
+      payload: imageURL,
+    }),
+  );
+
+  await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: (imageURL as string[])[0],
+      role: MessageRole.function,
     },
   });
 }

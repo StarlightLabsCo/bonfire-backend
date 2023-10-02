@@ -3,6 +3,7 @@ import db from './db';
 import { createInstanceHandler } from './handlers/instance';
 import { welcomeHandler } from './handlers/welcome';
 import { addPlayerMessage } from './handlers/messages';
+import { generateImage } from './sdxl';
 
 export type WebSocketData = {
   userId: string;
