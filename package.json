@@ -1,9 +1,14 @@
 {
   "name": "bonfire-backend",
-  "module": "index.ts",
   "type": "module",
+  "module": "index.ts",
+  "main": "index.ts",
   "scripts": {
     "dev": "bun --hot run index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:StarlightLabsCo/bonfire-backend.git"
   },
   "devDependencies": {
     "bun-types": "latest",
