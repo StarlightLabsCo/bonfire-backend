@@ -4,6 +4,7 @@ import { AuthHandler } from './handlers/auth';
 import { welcomeHandler } from './handlers/welcome';
 import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage } from './handlers/messages';
+import { processVoiceInput } from './handlers/voice';
 
 export type WebSocketData = {
   timeout: Timer | null;
@@ -16,6 +17,7 @@ const handlers: {
   auth: AuthHandler,
   welcome: welcomeHandler,
   'create-instance': createInstanceHandler,
+  voice: processVoiceInput,
   'add-player-message': addPlayerMessage,
 };
 
@@ -43,15 +45,23 @@ const server = Bun.serve<WebSocketData>({
       console.log('Websocket opened: ' + ws.remoteAddress);
 
       const timeout = setTimeout(() => {
-        console.log('Closing websocket due to timeout.');
+        console.log('Closing websocket due to timeout. Did not authenticate.');
         ws.close();
-      }, 10000);
+      }, 2000);
 
       ws.data.timeout = timeout;
     },
 
     async message(ws, message) {
       const data = JSON.parse(message.toString());
+
+      // If the websocket is not authenticated, only allow auth messages.
+      if (!ws.data.webSocketToken) {
+        if (data.type !== 'auth') {
+          console.error('Unauthorized websocket message.');
+          return;
+        }
+      }
 
       const handler = handlers[data.type as keyof typeof handlers];
       if (handler) {
