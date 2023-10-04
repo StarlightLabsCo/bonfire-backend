@@ -1,10 +1,6 @@
-import { ServerWebSocket } from 'bun';
-import { WebSocketData } from '.';
+const SAMPLE_RATE = 44100;
 
-const CHANNELS = 1;
-const SAMPLE_RATE = 16000;
-
-async function initAssemblyWs(ws: ServerWebSocket<WebSocketData>) {
+async function initAssemblyWs() {
   if (!process.env.ASSEMBLYAI_API_KEY) {
     throw new Error('ASSEMBLYAI_API_KEY is not defined');
   }
@@ -20,11 +16,6 @@ async function initAssemblyWs(ws: ServerWebSocket<WebSocketData>) {
 
   assemblyWs.addEventListener('open', () => {
     console.log('Connected to AssemblyAI.');
-  });
-
-  assemblyWs.addEventListener('message', (event) => {
-    console.log('Received message from AssemblyAI.', event.data);
-    ws.send(event.data);
   });
 
   assemblyWs.addEventListener('error', (err) => {

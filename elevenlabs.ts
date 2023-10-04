@@ -26,8 +26,16 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
   });
 
   elevenWs.addEventListener('message', (event) => {
-    console.log('Received message from 11 labs.');
-    ws.send(event.data);
+    const data = JSON.parse(event.data.toString());
+
+    console.log('TEST');
+
+    ws.send(
+      JSON.stringify({
+        type: 'audio',
+        payload: data,
+      }),
+    );
   });
   elevenWs.addEventListener('error', (err) => {
     console.error('Error from 11 labs.', err);
@@ -73,9 +81,15 @@ async function audioStreamRequest(
   });
   elevenLabsWS.addEventListener('message', (event) => {
     console.log('Received message from 11 labs.');
-    ws.send(event.data);
 
     const data = JSON.parse(event.data.toString());
+
+    ws.send(
+      JSON.stringify({
+        type: 'audio',
+        payload: data,
+      }),
+    );
     console.log(`isFinal: `, data.isFinal);
   });
   elevenLabsWS.addEventListener('close', () => {

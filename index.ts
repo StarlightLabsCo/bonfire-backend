@@ -4,7 +4,7 @@ import { AuthHandler } from './handlers/auth';
 import { welcomeHandler } from './handlers/welcome';
 import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage } from './handlers/messages';
-import { processVoiceInput } from './handlers/voice';
+import { processVoiceEnd, processVoiceInput } from './handlers/voice';
 
 export type WebSocketData = {
   timeout: Timer | null;
@@ -18,6 +18,7 @@ const handlers: {
   welcome: welcomeHandler,
   'create-instance': createInstanceHandler,
   voice: processVoiceInput,
+  'voice-end': processVoiceEnd,
   'add-player-message': addPlayerMessage,
 };
 
