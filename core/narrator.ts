@@ -226,6 +226,7 @@ async function continueStory(
           properties: {
             story: {
               type: 'string',
+              description: 'The new story to add to the existing story.',
             },
           },
         },
