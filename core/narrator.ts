@@ -7,7 +7,7 @@ import { generateImageFromStory } from '../sdxl';
 
 import { WebSocketData } from '..';
 
-type Message = {
+export type Message = {
   role: 'system' | 'assistant' | 'user' | 'function';
   content: string;
 };
@@ -26,8 +26,6 @@ async function init(description: string) {
   return messages;
 }
 
-async function feel(messages: Message[]) {}
-
 async function plan(instanceId: string, messages: Message[]) {
   const response = await openai.chat.completions.create({
     messages: messages,
@@ -36,7 +34,7 @@ async function plan(instanceId: string, messages: Message[]) {
       {
         name: 'plan_story',
         description:
-          'Image a detailed plan for the story. This should describes the overarching story, the main characters, twists, and the main goal. This will only be reference to yourself, the storyteller, and not to be shared with the players. Be specific in your plan, naming characters, locations, events and make sure to include the players in the story.',
+          'Image a detailed plan for the story. This should describes the overarching story, the main characters, twists, and the main goal. This will only be reference to yourself, the storyteller, and not to be shared with the players. Be specific in your plan, naming characters, locations, events and make sure to include the players in the story. No newlines.',
         parameters: {
           type: 'object',
           properties: {
@@ -58,8 +56,13 @@ async function plan(instanceId: string, messages: Message[]) {
   }
 
   console.log(response.choices[0].message.function_call.arguments);
-  const args = JSON.parse(response.choices[0].message.function_call.arguments);
-  const plan = 'Plan: ' + args.plan;
+  const planArgs = JSON.parse(
+    response.choices[0].message.function_call.arguments,
+  );
+
+  const plan = 'Plan: ' + planArgs.plan.replace('\\n', '').replace('\\"', '"');
+
+  console.log(plan);
 
   const newMessages = messages.concat({
     role: 'system',
@@ -80,10 +83,6 @@ async function plan(instanceId: string, messages: Message[]) {
 
   return newMessages;
 }
-
-async function say() {}
-
-// ----------------------------------------------
 
 async function beginStory(
   ws: ServerWebSocket<WebSocketData>,
@@ -152,7 +151,13 @@ async function beginStory(
         buffer += args;
         buffer = buffer.replace(/\\n/g, '\n');
 
-        if ('{\n  "introduction": "'.includes(buffer)) {
+        if (
+          '{\n"introduction":"'.includes(buffer) ||
+          '{\n"introduction": "'.includes(buffer) ||
+          '{\n "introduction": "'.includes(buffer) ||
+          '{\n  "introduction": "'.includes(buffer) ||
+          '{"introduction": "'.includes(buffer)
+        ) {
           console.log('skipping beginning');
           continue;
         }
@@ -307,7 +312,13 @@ async function continueStory(
         buffer += args;
         buffer = buffer.replace(/\\n/g, '\n');
 
-        if ('{\n  "story": "'.includes(buffer)) {
+        if (
+          '{\n"story":"'.includes(buffer) ||
+          '{\n"story": "'.includes(buffer) ||
+          '{\n "story": "'.includes(buffer) ||
+          '{\n  "story": "'.includes(buffer) ||
+          '{"story": "'.includes(buffer)
+        ) {
           console.log('skipping beginning');
           continue;
         }
