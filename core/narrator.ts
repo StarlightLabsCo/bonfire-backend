@@ -36,7 +36,7 @@ async function plan(instanceId: string, messages: Message[]) {
       {
         name: 'plan_story',
         description:
-          'Create a detailed plan for the story. This should describes everything from the overarching story to the minor beats, the main characters, twists, and the main goal. This only being used as reference to yourself, the storyteller, and not to be shared with the players. Be specific in your plan, naming characters, locations, events and make sure to include the players in the story. Avoid newline characters.',
+          'Image a detailed plan for the story. This should describes the overarching story, the main characters, twists, and the main goal. This will only be reference to yourself, the storyteller, and not to be shared with the players. Be specific in your plan, naming characters, locations, events and make sure to include the players in the story.',
         parameters: {
           type: 'object',
           properties: {
@@ -58,7 +58,8 @@ async function plan(instanceId: string, messages: Message[]) {
   }
 
   console.log(response.choices[0].message.function_call.arguments);
-  const plan = 'Plan: ' + response.choices[0].message.function_call.arguments;
+  const args = JSON.parse(response.choices[0].message.function_call.arguments);
+  const plan = 'Plan: ' + args.plan;
 
   const newMessages = messages.concat({
     role: 'system',
@@ -113,7 +114,7 @@ async function beginStory(
       {
         name: 'introduce_story_and_characters',
         description:
-          'A introduction to the story and characters ending with an interesting situation or starting point where the story begins for the players.',
+          'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players.',
         parameters: {
           type: 'object',
           properties: {
@@ -149,6 +150,7 @@ async function beginStory(
     try {
       if (args) {
         buffer += args;
+        buffer = buffer.replace(/\\n/g, '\n');
 
         if ('{\n  "introduction": "'.includes(buffer)) {
           console.log('skipping beginning');
@@ -272,14 +274,13 @@ async function continueStory(
       {
         name: 'continue_story',
         description:
-          'Continue the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward.',
+          'Continue the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward, but with correct pacing. Stories should be interesting, but not too fast paced, and not too slow. Expand upon the plan made previously.',
         parameters: {
           type: 'object',
           properties: {
             story: {
               type: 'string',
-              description:
-                'The new story to add to the existing story. Make sure to progress the story forward, but not so quickly that it feels like things are glossed over, keeping pacing in mind.',
+              description: 'The new story to add to the existing story.',
             },
           },
         },
@@ -304,6 +305,7 @@ async function continueStory(
     try {
       if (args) {
         buffer += args;
+        buffer = buffer.replace(/\\n/g, '\n');
 
         if ('{\n  "story": "'.includes(buffer)) {
           console.log('skipping beginning');
