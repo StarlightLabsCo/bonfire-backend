@@ -113,7 +113,7 @@ async function beginStory(
       {
         name: 'introduce_story_and_characters',
         description:
-          'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players.',
+          'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players. Keep it short and punchy. No newlines.',
         parameters: {
           type: 'object',
           properties: {
@@ -209,6 +209,15 @@ async function beginStory(
     },
   });
 
+  messages.push({
+    role: 'assistant',
+    content: buffer,
+  });
+
+  // Post generation tasks
+  generateSuggestions(ws, messages);
+
+  // Generate image
   const imageURL = await generateImageFromStory(buffer);
 
   if (!imageURL) {
@@ -285,7 +294,8 @@ async function continueStory(
           properties: {
             story: {
               type: 'string',
-              description: 'The new story to add to the existing story.',
+              description:
+                'The new story to add to the existing story. Keep it short and punchy. No newlines.',
             },
           },
         },
@@ -375,6 +385,10 @@ async function continueStory(
     content: buffer,
   });
 
+  // Post generation tasks
+  generateSuggestions(ws, messages);
+
+  // Generate image
   const storyString = messagesToString(messages);
   const imageURL = await generateImageFromStory(storyString);
 
@@ -407,5 +421,52 @@ const messagesToString = (messages: Message[]) => {
 
   return string;
 };
+
+async function generateSuggestions(
+  ws: ServerWebSocket<WebSocketData>,
+  messages: Message[],
+) {
+  const response = await openai.chat.completions.create({
+    messages: messages,
+    model: 'gpt-4',
+    functions: [
+      {
+        name: 'generate_suggestions',
+        description:
+          'Given the the current story, generate a list of short (~2-5 words) for the players to choose from. This should be a list of 2-3 options, each with a short description of what the option is. The players will choose one of these options, and the story will continue from there.',
+        parameters: {
+          type: 'object',
+          properties: {
+            suggestions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+            },
+          },
+        },
+      },
+    ],
+    function_call: {
+      name: 'generate_suggestions',
+    },
+  });
+
+  const args = response.choices[0].message.function_call?.arguments;
+
+  if (!args) {
+    console.error('No suggestions found');
+    return;
+  }
+
+  const argsJSON = JSON.parse(args);
+
+  ws.send(
+    JSON.stringify({
+      type: 'suggestions',
+      payload: argsJSON.suggestions,
+    }),
+  );
+}
 
 export { beginStory, continueStory };
