@@ -76,7 +76,7 @@ model User {
 model Instance {
   id String @id @default(cuid())
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   description String
@@ -97,7 +97,7 @@ enum MessageRole {
 model Message {
   id String @id @default(cuid())
 
-  instance   Instance @relation(fields: [instanceId], references: [id])
+  instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String
 
   role    MessageRole

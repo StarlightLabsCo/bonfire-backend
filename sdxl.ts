@@ -49,7 +49,7 @@ async function generateImageFromStory(story: string) {
       {
         name: 'generate_image',
         description:
-          'Based on the story, pick the most interesting segment and generate an image to go with it. This could be a scene, a character, or an object. Use the examples to guide you. Describe a prompt, and negative prompt.',
+          'Based on the story, pick the most interesting concept, character, or idea from the most recent story addition and generate an image to go with it. This could be a scene, a character, or an object. Use the examples to guide you. Keep it consistent with the story. Describe a prompt, and negative prompt.',
         parameters: {
           type: 'object',
           properties: {

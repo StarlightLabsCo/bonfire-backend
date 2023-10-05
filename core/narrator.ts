@@ -3,7 +3,7 @@ import { MessageRole } from '@prisma/client';
 import db from '../db';
 import { openai } from '../openai';
 import { audioStreamRequest, initElevenLabsWs } from '../elevenlabs';
-import { generateImage, generateImageFromStory } from '../sdxl';
+import { generateImageFromStory } from '../sdxl';
 
 import { WebSocketData } from '..';
 
@@ -18,17 +18,67 @@ async function init(description: string) {
   messages.push({
     role: 'system',
     content:
-      'You are an experienced Dungeon Master, filled with the knowledge of ages. You have a wit as sharp as a dagger, and a heart as pure as gold. You are the master of your own destiny, and the destiny of others. You seek to create a world of your own, and to share it with others, and get a few laughs or cries along the way. An epic story awaits, for you are the Dungeon Master, and you are the narrator of this story. Do not refer to yourself, and speak of your adventurers in the third person. \n\n' +
-      'The provided description of the story is as follows: ' +
+      'You are an experienced storyteller. You have a wit as sharp as a dagger, and a heart as pure as gold. You are the master of your own destiny, and the destiny of others. You seek to create a world of your own, and to share it with others, getting a few laughs or cries along the way. Do not refer to yourself. Given the description below create a thrilling and vibrant story that features the listener (whom you talk about in the 2nd person "You") as the main character, give options of what to do next.\n\n' +
+      'The request story description is as follows: ' +
       description,
   });
 
   return messages;
 }
 
-async function feel() {}
+async function feel(messages: Message[]) {}
 
-async function plan() {}
+async function plan(instanceId: string, messages: Message[]) {
+  const response = await openai.chat.completions.create({
+    messages: messages,
+    model: 'gpt-4',
+    functions: [
+      {
+        name: 'plan_story',
+        description:
+          'Create a detailed plan for the story. This should describes everything from the overarching story to the minor beats, the main characters, twists, and the main goal. This only being used as reference to yourself, the storyteller, and not to be shared with the players. Be specific in your plan, naming characters, locations, events and make sure to include the players in the story. Avoid newline characters.',
+        parameters: {
+          type: 'object',
+          properties: {
+            plan: {
+              type: 'string',
+            },
+          },
+        },
+      },
+    ],
+    function_call: {
+      name: 'plan_story',
+    },
+  });
+
+  if (!response.choices[0].message.function_call) {
+    console.error('[plan] No function call found');
+    return messages;
+  }
+
+  console.log(response.choices[0].message.function_call.arguments);
+  const plan = 'Plan: ' + response.choices[0].message.function_call.arguments;
+
+  const newMessages = messages.concat({
+    role: 'system',
+    content: plan,
+  });
+
+  await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: plan,
+      role: MessageRole.system,
+    },
+  });
+
+  return newMessages;
+}
 
 async function say() {}
 
@@ -51,7 +101,9 @@ async function beginStory(
     return;
   }
 
-  const messages = await init(instance.description);
+  let messages = await init(instance.description);
+
+  messages = await plan(instanceId, messages);
 
   const response = await openai.chat.completions.create({
     messages: messages,
@@ -61,7 +113,7 @@ async function beginStory(
       {
         name: 'introduce_story_and_characters',
         description:
-          'A short introduction to the story and characters ending with an interesting situation or starting point where the story begins for the players. Avoid newline charcters, and keep the story to a single paragraph.',
+          'A introduction to the story and characters ending with an interesting situation or starting point where the story begins for the players.',
         parameters: {
           type: 'object',
           properties: {
@@ -220,13 +272,14 @@ async function continueStory(
       {
         name: 'continue_story',
         description:
-          'Continue the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward. Avoid newline charcters, and keep the story to a single paragraph.',
+          'Continue the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward.',
         parameters: {
           type: 'object',
           properties: {
             story: {
               type: 'string',
-              description: 'The new story to add to the existing story.',
+              description:
+                'The new story to add to the existing story. Make sure to progress the story forward, but not so quickly that it feels like things are glossed over, keeping pacing in mind.',
             },
           },
         },
@@ -304,7 +357,13 @@ async function continueStory(
     },
   });
 
-  const imageURL = await generateImageFromStory(buffer);
+  messages.push({
+    role: 'assistant',
+    content: buffer,
+  });
+
+  const storyString = messagesToString(messages);
+  const imageURL = await generateImageFromStory(storyString);
 
   ws.send(
     JSON.stringify({
@@ -325,5 +384,15 @@ async function continueStory(
     },
   });
 }
+
+const messagesToString = (messages: Message[]) => {
+  const string = messages.reduce((acc, message) => {
+    if (message.role === 'system') return acc; // Do not include system messages in the story to generate images, might leak information
+
+    return acc + message.role + ': ' + message.content + '\n';
+  }, '');
+
+  return string;
+};
 
 export { beginStory, continueStory };
