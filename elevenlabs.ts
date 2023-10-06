@@ -28,8 +28,6 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
   elevenWs.addEventListener('message', (event) => {
     const data = JSON.parse(event.data.toString());
 
-    console.log('TEST');
-
     ws.send(
       JSON.stringify({
         type: 'audio',

@@ -140,8 +140,7 @@ async function beginStory(
 
   let buffer = '';
 
-  // TODO: uncomment this once eleven labs is working
-  // let elevenLabsWS = await initElevenLabsWs(ws);
+  let elevenLabsWS = await initElevenLabsWs(ws);
 
   for await (const chunk of response) {
     let args = chunk.choices[0].delta.function_call?.arguments;
@@ -174,26 +173,22 @@ async function beginStory(
           }),
         );
 
-        // TODO: uncomment this once eleven labs is working
-        // elevenLabsWS.send(JSON.stringify({ text: args }));
+        elevenLabsWS.send(JSON.stringify({ text: args }));
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  // TODO: uncomment this once eleven labs is working
-  // elevenLabsWS.send(
-  //   JSON.stringify({
-  //     text: '',
-  //   }),
-  // );
+  elevenLabsWS.send(
+    JSON.stringify({
+      text: '',
+    }),
+  );
 
   // Clean up and send final - removing the stray ending " in the process
   buffer = buffer.replace(/^\{\s*.*?"introduction":\s*"/, '');
   buffer = buffer.replace(/"\s*\}\s*$/, '');
-
-  audioStreamRequest(ws, buffer); // TODO: remove when eleven labs streamig input is working
 
   ws.send(JSON.stringify({ type: 'message-set', payload: buffer }));
 
@@ -308,11 +303,9 @@ async function continueStory(
 
   ws.send(JSON.stringify({ type: 'message-add' }));
 
-  // TODO: add openai code here
   let buffer = '';
 
-  // TODO: uncomment this once eleven labs is working
-  // let elevenLabsWS = await initElevenLabsWs(ws);
+  let elevenLabsWS = await initElevenLabsWs(ws);
 
   for await (const chunk of response) {
     let args = chunk.choices[0].delta.function_call?.arguments;
@@ -345,26 +338,22 @@ async function continueStory(
           }),
         );
 
-        // TODO: uncomment this once eleven labs is working
-        // elevenLabsWS.send(JSON.stringify({ text: args }));
+        elevenLabsWS.send(JSON.stringify({ text: args }));
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  // TODO: uncomment this once eleven labs is working
-  // elevenLabsWS.send(
-  //   JSON.stringify({
-  //     text: '',
-  //   }),
-  // );
+  elevenLabsWS.send(
+    JSON.stringify({
+      text: '',
+    }),
+  );
 
   // Clean up and send final - removing the stray ending " in the process
   buffer = buffer.replace(/^\{\s*.*?"story":\s*"/, '');
   buffer = buffer.replace(/"\s*\}\s*$/, '');
-
-  audioStreamRequest(ws, buffer); // TODO: remove when eleven labs streamig input is working
 
   ws.send(JSON.stringify({ type: 'message-set', payload: buffer }));
 
