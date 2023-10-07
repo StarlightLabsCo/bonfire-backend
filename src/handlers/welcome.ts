@@ -30,13 +30,22 @@ async function welcomeHandler(
   elevenLabsWs.send(JSON.stringify({ text: initialWelcome }));
   elevenLabsWs.send(JSON.stringify({ text: '' }));
 
+  // banter(ws, name, data.payload.description, initialWelcome);
+}
+
+async function banter(
+  ws: ServerWebSocket<WebSocketData>,
+  name: string,
+  description: string,
+  initialWelcome: string,
+) {
   let messages = [] as Message[];
   messages.push({
     role: 'system',
     content:
       'You are an experienced storyteller. You have a wit as sharp as a dagger, and a heart as pure as gold. You are the master of your own destiny, and the destiny of others. You seek to create a world of your own, and to share it with others, getting a few laughs or cries along the way. \n\n' +
       `${name}'s request for a a follows: \n` +
-      data.payload.description,
+      description,
   });
 
   messages.push({
@@ -67,8 +76,6 @@ async function welcomeHandler(
     },
   });
 
-  console.log(response.choices[0]);
-
   if (!response.choices[0].message.function_call) {
     console.error('[plan] No function call found');
     return;
@@ -82,7 +89,7 @@ async function welcomeHandler(
 
   console.log(`Banter: ${banter}`);
 
-  elevenLabsWs = await initElevenLabsWs(ws);
+  let elevenLabsWs = await initElevenLabsWs(ws);
   elevenLabsWs.send(JSON.stringify({ text: banter }));
   elevenLabsWs.send(JSON.stringify({ text: '' }));
 }
