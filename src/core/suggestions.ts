@@ -75,7 +75,7 @@ async function generateSuggestions(
     type: WebSocketResponseType.suggestions,
     payload: {
       id: suggestions.id,
-      content: argsJSON.suggestions,
+      content: argsJSON.suggestions as string[],
     },
   });
 }

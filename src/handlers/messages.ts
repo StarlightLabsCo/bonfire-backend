@@ -12,6 +12,11 @@ async function addPlayerMessage(
     payload: { instanceId: string; content: string };
   },
 ) {
+  console.log(
+    'addPlayerMessage',
+    data.payload.instanceId,
+    data.payload.content,
+  );
   await db.message.create({
     data: {
       instance: {
