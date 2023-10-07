@@ -2,7 +2,7 @@ import { ServerWebSocket } from 'bun';
 import { MessageRole } from '@prisma/client';
 import db from '../db';
 import { openai } from '../openai';
-import { audioStreamRequest, initElevenLabsWs } from '../elevenlabs';
+import { initElevenLabsWs } from '../elevenlabs';
 import { generateImageFromStory } from '../sdxl';
 
 import { WebSocketData } from '..';
