@@ -73,11 +73,7 @@ async function openaiCompletion(
         buffer += args;
         buffer = buffer.replace(/\\n/g, '\n');
 
-        // Assume functionParameters is an object like { key1: value1, key2: value2 }
-
-        console.log('buffer', buffer);
-
-        // Then replace the function name checks with firstParamKey
+        // Remove the param key from the stream
         if (
           `{\n"${firstParamKey}":"`.includes(buffer) ||
           `{\n"${firstParamKey}": "`.includes(buffer) ||
@@ -172,50 +168,45 @@ async function progressStory(
       },
     });
 
-    const functionParameters = {
-      type: 'object',
-      properties: {
-        introduction: {
-          type: 'string',
-        },
-      },
-    };
-
     await openaiCompletion(
       ws,
       instanceId,
       'introduce_story_and_characters',
       'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players. Keep it short and punchy. No newlines.',
-      functionParameters,
+      {
+        type: 'object',
+        properties: {
+          introduction: {
+            type: 'string',
+          },
+        },
+      },
     );
   } else {
     // We have messages, so we need to continue the story
-    const functionParameters = {
-      type: 'object',
-      properties: {
-        story: {
-          type: 'string',
-          description:
-            'The new story to add to the existing story. Keep it short and punchy. No newlines.',
-        },
-      },
-    };
-
     await openaiCompletion(
       ws,
       instanceId,
       'continue_story',
       'Continue the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward, but with correct pacing. Stories should be interesting, but not too fast paced, and not too slow. Expand upon the plan made previously.',
-      functionParameters,
+      {
+        type: 'object',
+        properties: {
+          story: {
+            type: 'string',
+            description:
+              'The new story to add to the existing story. Keep it short and punchy. No newlines.',
+          },
+        },
+      },
     );
   }
 
+  // Generate placeholder so it'll always be infront of the suggestions in the history
+  // also prevents images from coming out of order
   const message = await generateImagePlaceholder(ws, instanceId);
 
-  // Post generation tasks
   generateSuggestions(ws, instanceId);
-
-  // Generate image
   generateImageFromStory(ws, message.id);
 }
 

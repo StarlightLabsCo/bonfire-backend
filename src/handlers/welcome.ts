@@ -74,8 +74,6 @@ async function welcomeHandler(
     return;
   }
 
-  console.log(response.choices[0].message.function_call.arguments);
-
   const banterArgs = JSON.parse(
     response.choices[0].message.function_call.arguments,
   );
