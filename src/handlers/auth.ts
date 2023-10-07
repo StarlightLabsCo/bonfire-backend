@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
-import db from '../db';
+import db from '../lib/db';
 
 async function AuthHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
   const token = data.payload;

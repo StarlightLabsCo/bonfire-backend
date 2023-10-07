@@ -1,21 +1,86 @@
-import Replicate from 'replicate';
-import { openai } from './openai';
+import { ServerWebSocket } from 'bun';
+import { MessageRole } from '@prisma/client';
+import db from '../lib/db';
+import { openai } from '../services/openai';
+import { generateImage } from '../services/sdxl';
+import { getMessages, messagesToString } from './utils';
+import { WebSocketData } from '..';
+import { WebSocketResponseType, send } from '../websocket-schema';
 
-if (!process.env.REPLICATE_API_TOKEN) {
-  throw new Error('REPLICATE_API_TOKEN is not defined');
+async function generateImagePlaceholder(
+  ws: ServerWebSocket<WebSocketData>,
+  instanceId: string,
+) {
+  const instance = await db.instance.findUnique({
+    where: {
+      id: instanceId,
+    },
+  });
+
+  if (!instance) {
+    throw new Error('[initStory] Instance not found');
+  }
+
+  const image = await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: JSON.stringify({
+        type: 'generate_image',
+        payload: {
+          prompt: '',
+          negative_prompt: '',
+          imageURL: '',
+        },
+      }),
+      role: MessageRole.function,
+    },
+  });
+
+  send(ws, {
+    type: WebSocketResponseType.image,
+    payload: {
+      id: image.id,
+      content: JSON.stringify({
+        type: 'generate_image',
+        payload: {
+          prompt: '',
+          negative_prompt: '',
+          imageURL: '',
+        },
+      }),
+    },
+  });
+
+  return image;
 }
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+async function generateImageFromStory(
+  ws: ServerWebSocket<WebSocketData>,
+  messageId: string,
+) {
+  const message = await db.message.findUnique({
+    where: {
+      id: messageId,
+    },
+  });
 
-async function generateImageFromStory(story: string) {
+  if (!message) {
+    throw new Error('[generateAndUpdateImage] Message not found');
+  }
+
+  const messages = await getMessages(message.instanceId);
+  const story = messagesToString(messages);
+
   const response = await openai.chat.completions.create({
     messages: [
       {
         role: 'system',
         content:
-          'You are an expert artist in the field of prompt engineering based art. Your job is to take sections of a story and generate an image to go with it. Here are some examples of prompts as reference:\n' +
+          'You are an expert artist in the field of prompt engineering based art. Your job is to take a story and generate the best image to go with it. Here are some examples of prompts as reference:\n' +
           'Digital Art / Concept Art\n' +
           'Prompt: concept art of dragon flying over town, clouds. digital artwork, illustrative, painterly, matte painting, highly detailed, cinematic composition\n' +
           'Negative Prompt: photo, photorealistic, realism, ugly\n' +
@@ -74,31 +139,40 @@ async function generateImageFromStory(story: string) {
   }
 
   const data = JSON.parse(response.choices[0].message.function_call.arguments);
-  console.log(data);
-
   const imageURL = await generateImage(data.prompt, data.negative_prompt);
-  console.log(imageURL);
 
-  return imageURL;
-}
-
-async function generateImage(prompt: string, negative_prompt: string) {
-  const output = await replicate.run(
-    'stability-ai/sdxl:af1a68a271597604546c09c64aabcd7782c114a63539a4a8d14d1eeda5630c33',
-    {
-      input: {
-        prompt,
-        negative_prompt,
-        width: 1344,
-        height: 768,
-        scheduler: 'KarrasDPM',
-        refine: 'expert_ensemble_refiner',
-        apply_watermark: false,
-      },
+  const image = await db.message.update({
+    where: {
+      id: messageId,
     },
-  );
+    data: {
+      content: JSON.stringify({
+        type: 'generate_image',
+        payload: {
+          prompt: data.prompt,
+          negative_prompt: data.negative_prompt,
+          imageURL: imageURL[0],
+        },
+      }),
+    },
+  });
 
-  return output;
+  send(ws, {
+    type: WebSocketResponseType.image,
+    payload: {
+      id: image.id,
+      content: JSON.stringify({
+        type: 'generate_image',
+        payload: {
+          prompt: data.prompt,
+          negative_prompt: data.negative_prompt,
+          imageURL: imageURL[0],
+        },
+      }),
+    },
+  });
+
+  return image;
 }
 
-export { generateImage, generateImageFromStory };
+export { generateImagePlaceholder, generateImageFromStory };

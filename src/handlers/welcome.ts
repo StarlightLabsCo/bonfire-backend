@@ -1,9 +1,8 @@
 import { ServerWebSocket } from 'bun';
-import { audioStreamRequest } from '../elevenlabs';
 import { WebSocketData } from '..';
-import db from '../db';
-import { openai } from '../openai';
-import { Message } from '../core/narrator';
+import db from '../lib/db';
+import { Message, openai } from '../services/openai';
+import { initElevenLabsWs } from '../services/elevenlabs';
 
 async function welcomeHandler(
   ws: ServerWebSocket<WebSocketData>,
@@ -27,7 +26,9 @@ async function welcomeHandler(
 
   let initialWelcome = `Ah, hello ${name}. Are you ready for an adventure?`;
 
-  await audioStreamRequest(ws, initialWelcome);
+  let elevenLabsWs = await initElevenLabsWs(ws);
+  elevenLabsWs.send(JSON.stringify({ text: initialWelcome }));
+  elevenLabsWs.send(JSON.stringify({ text: '' }));
 
   let messages = [] as Message[];
   messages.push({
@@ -48,7 +49,7 @@ async function welcomeHandler(
     model: 'gpt-4',
     functions: [
       {
-        name: 'banter',
+        name: 'generate_banter',
         description:
           "Thinking of a good story takes some time, engage in some fun banter while the story is being generated. No newlines. Keep it short & sweet! Comment at the end that you're almost ready to begin.",
         parameters: {
@@ -56,21 +57,24 @@ async function welcomeHandler(
           properties: {
             banter: {
               type: 'string',
-              description: 'No newlines. Keep it short & sweet!',
             },
           },
         },
       },
     ],
     function_call: {
-      name: 'banter',
+      name: 'generate_banter',
     },
   });
 
+  console.log(response.choices[0]);
+
   if (!response.choices[0].message.function_call) {
     console.error('[plan] No function call found');
-    return messages;
+    return;
   }
+
+  console.log(response.choices[0].message.function_call.arguments);
 
   const banterArgs = JSON.parse(
     response.choices[0].message.function_call.arguments,
@@ -80,7 +84,9 @@ async function welcomeHandler(
 
   console.log(`Banter: ${banter}`);
 
-  audioStreamRequest(ws, banter);
+  elevenLabsWs = await initElevenLabsWs(ws);
+  elevenLabsWs.send(JSON.stringify({ text: banter }));
+  elevenLabsWs.send(JSON.stringify({ text: '' }));
 }
 
 export { welcomeHandler };

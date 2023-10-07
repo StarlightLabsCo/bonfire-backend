@@ -2,9 +2,9 @@
   "name": "bonfire-backend",
   "type": "module",
   "module": "index.ts",
-  "main": "index.ts",
+  "main": "./src/index.ts",
   "scripts": {
-    "dev": "bun --hot run index.ts",
+    "dev": "bun --hot run ./src/index.ts",
     "postinstall": "prisma generate"
   },
   "repository": {
