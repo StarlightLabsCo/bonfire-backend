@@ -3,7 +3,7 @@ import { WebSocketAuthenticationToken } from '@prisma/client';
 import { AuthHandler } from './handlers/auth';
 import { welcomeHandler } from './handlers/welcome';
 import { createInstanceHandler } from './handlers/instance';
-import { addPlayerMessage } from './handlers/messages';
+import { addPlayerMessage, undo } from './handlers/messages';
 import { processVoiceEnd, processVoiceInput } from './handlers/voice';
 
 export type WebSocketData = {
@@ -20,6 +20,7 @@ const handlers: {
   voice: processVoiceInput,
   'voice-end': processVoiceEnd,
   'add-player-message': addPlayerMessage,
+  undo: undo,
 };
 
 const server = Bun.serve<WebSocketData>({
