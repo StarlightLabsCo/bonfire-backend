@@ -141,19 +141,21 @@ async function generateImageFromStory(
   const data = JSON.parse(response.choices[0].message.function_call.arguments);
   const imageURL = await generateImage(data.prompt, data.negative_prompt);
 
+  let content = JSON.stringify({
+    type: 'generate_image',
+    payload: {
+      prompt: data.prompt,
+      negative_prompt: data.negative_prompt,
+      imageURL: imageURL[0],
+    },
+  });
+
   const image = await db.message.update({
     where: {
       id: messageId,
     },
     data: {
-      content: JSON.stringify({
-        type: 'generate_image',
-        payload: {
-          prompt: data.prompt,
-          negative_prompt: data.negative_prompt,
-          imageURL: imageURL[0],
-        },
-      }),
+      content,
     },
   });
 
@@ -161,14 +163,7 @@ async function generateImageFromStory(
     type: WebSocketResponseType.image,
     payload: {
       id: image.id,
-      content: JSON.stringify({
-        type: 'generate_image',
-        payload: {
-          prompt: data.prompt,
-          negative_prompt: data.negative_prompt,
-          imageURL: imageURL[0],
-        },
-      }),
+      content,
     },
   });
 

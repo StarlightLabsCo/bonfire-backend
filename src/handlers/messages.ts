@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
-import { MessageRole } from '@prisma/client';
+import { Message, MessageRole } from '@prisma/client';
 import db from '../lib/db';
 import { step } from '../core/story';
 import { WebSocketResponseType, send } from '../websocket-schema';
@@ -12,6 +12,11 @@ async function addPlayerMessage(
     payload: { instanceId: string; content: string };
   },
 ) {
+  console.log(
+    'addPlayerMessage',
+    data.payload.instanceId,
+    data.payload.content,
+  );
   await db.message.create({
     data: {
       instance: {
@@ -28,53 +33,56 @@ async function addPlayerMessage(
 }
 
 async function undo(
-  ws: ServerWebSocket,
+  ws: ServerWebSocket<WebSocketData>,
   data: {
     type: 'undo';
     payload: { instanceId: string };
   },
 ) {
-  // const messages = await db.message.findMany({
-  //   where: {
-  //     instanceId: data.payload.instanceId,
-  //   },
-  //   orderBy: {
-  //     createdAt: 'desc',
-  //   },
-  // });
-  // if (messages.length === 0) {
-  //   return;
-  // }
-  // // TODO: delete the last suggestion, the last image, the last narrator message, and the last user message
-  // // TODO: and then send back the suggestions right before that
-  // const lastMessage = messages[0]; // suggestions
-  // const secondLastMessage = messages[1]; // image
-  // const thirdLastMessage = messages[2]; // narrator
-  // const fourthLastMessage = messages[3]; // user
-  // const fifthLastMessage = messages[4]; // new suggestions
-  // for (const message of messages) {
-  //   if (message.id === fifthLastMessage.id) {
-  //     break;
-  //   }
-  //   await db.message.delete({
-  //     where: {
-  //       id: message.id,
-  //     },
-  //   });
-  //   send(ws, {
-  //     type: WebSocketResponseType['message'],
-  //     payload: {
-  //       id: message.id,
-  //     },
-  //   });
-  // }
-  // send(ws, {
-  //   type: WebSocketResponseType.suggestions,
-  //   payload: {
-  //     id: fifthLastMessage.id,
-  //     content: JSON.parse(fifthLastMessage.content),
-  //   },
-  // });
+  async function getMessagesToUndo() {
+    const messages = await db.message.findMany({
+      where: {
+        instanceId: data.payload.instanceId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    let generateSuggestionsCount = 0;
+
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+
+      if (message.role === MessageRole.function) {
+        const content = JSON.parse(message.content);
+
+        if (content.type === 'generate_suggestions') {
+          generateSuggestionsCount++;
+          if (generateSuggestionsCount === 2) {
+            return messages.slice(0, i);
+          }
+        }
+
+        continue;
+      }
+    }
+
+    return [];
+  }
+
+  const messagesToDelete = await getMessagesToUndo();
+  if (messagesToDelete.length === 0) {
+    console.log(
+      'No messages to delete -- couldnt find 2nd to last generate_suggestions',
+    );
+  }
+
+  for (let i = 0; i < messagesToDelete.length; i++) {
+    const message = messagesToDelete[i];
+    console.log('Deleting message', message.id, message.role);
+    await db.message.delete({ where: { id: message.id } });
+  }
 }
 
 export { addPlayerMessage, undo };
