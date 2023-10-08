@@ -39,65 +39,50 @@ async function undo(
     payload: { instanceId: string };
   },
 ) {
-  const prisma = require('@prisma/client').prisma;
-
   async function getMessagesToUndo() {
-    // Find the two most recent 'Suggestions'
-    const suggestionMessages = await prisma.message.findMany({
+    const messages = await db.message.findMany({
       where: {
-        role: 'function',
-        content: {
-          type: 'generate_suggestions',
-        },
+        instanceId: data.payload.instanceId,
       },
       orderBy: {
         createdAt: 'desc',
       },
-      take: 2,
     });
 
-    // If there's less than 2 suggestion messages, return empty (or handle appropriately)
-    if (suggestionMessages.length < 2) {
-      return [];
+    let generateSuggestionsCount = 0;
+
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+
+      if (message.role === MessageRole.function) {
+        const content = JSON.parse(message.content);
+
+        if (content.type === 'generate_suggestions') {
+          generateSuggestionsCount++;
+          if (generateSuggestionsCount === 2) {
+            return messages.slice(0, i);
+          }
+        }
+
+        continue;
+      }
     }
 
-    const secondMostRecentSuggestion = suggestionMessages[1];
-
-    // Fetch all messages after the second most recent 'Suggestions' until the most recent 'Suggestions'
-    const messagesToDelete = await prisma.message.findMany({
-      where: {
-        createdAt: {
-          gte: secondMostRecentSuggestion.createdAt,
-          lt: suggestionMessages[0].createdAt,
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    return messagesToDelete;
+    return [];
   }
 
-  getMessagesToUndo().then((messages) => {
-    console.log(messages);
-    messages.forEach((message: Message) => {
-      console.log(message.content);
-    });
-    // If you wish to delete them:
-    // messages.forEach(async message => {
-    //   await prisma.message.delete({ where: { id: message.id } });
-    // });
-    send(ws, {
-      type: WebSocketResponseType['delete-messages'],
-      payload: {
-        id: data.payload.instanceId,
-        content: {
-          ids: [messages.map((message: Message) => message.id)],
-        },
-      },
-    });
-  });
+  const messagesToDelete = await getMessagesToUndo();
+  if (messagesToDelete.length === 0) {
+    console.log(
+      'No messages to delete -- couldnt find 2nd to last generate_suggestions',
+    );
+  }
+
+  for (let i = 0; i < messagesToDelete.length; i++) {
+    const message = messagesToDelete[i];
+    console.log('Deleting message', message.id, message.role);
+    await db.message.delete({ where: { id: message.id } });
+  }
 }
 
 export { addPlayerMessage, undo };

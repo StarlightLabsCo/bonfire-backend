@@ -56,6 +56,11 @@ async function generateSuggestions(
 
   const argsJSON = JSON.parse(args);
 
+  let content = JSON.stringify({
+    type: 'generate_suggestions',
+    payload: argsJSON.suggestions,
+  });
+
   const suggestions = await db.message.create({
     data: {
       instance: {
@@ -63,10 +68,7 @@ async function generateSuggestions(
           id: instanceId,
         },
       },
-      content: JSON.stringify({
-        type: 'generate_suggestions',
-        payload: argsJSON.suggestions,
-      }),
+      content,
       role: 'function',
     },
   });
@@ -75,7 +77,7 @@ async function generateSuggestions(
     type: WebSocketResponseType.suggestions,
     payload: {
       id: suggestions.id,
-      content: argsJSON.suggestions as string[],
+      content,
     },
   });
 }
