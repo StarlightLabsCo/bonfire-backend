@@ -117,16 +117,14 @@ model OpenAIRequestLog {
   message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   messageId String  @unique
 
-  tag String
+  functionName String
 
-  requestMethod  String
   requestUrl     String
   requestHeaders Json
   requestBody    Json
 
   responseHeaders Json
-  responseStatus  Int
-  responseBody    Json
+  responseBody    String // Needs to be string because can be JSON or SSE events
   responseTime    Int
 
   model            String
@@ -134,10 +132,12 @@ model OpenAIRequestLog {
   completionTokens Int
   totalTokens      Int
 
+  streamed Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([tag])
+  @@index([functionName])
 }
 
 model ReplicateRequestLog {

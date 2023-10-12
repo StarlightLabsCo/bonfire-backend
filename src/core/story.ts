@@ -38,21 +38,29 @@ async function openaiCompletion(
     initElevenLabsWs(ws),
   ]);
 
-  const response = await openai.chat.completions.create({
-    messages: messages,
-    model: 'gpt-4',
-    stream: true,
-    functions: [
-      {
+  const response = await openai.chat.completions.create(
+    {
+      messages: messages,
+      model: 'gpt-4',
+      stream: true,
+      functions: [
+        {
+          name: functionName,
+          description: functionDescription,
+          parameters: functionParameters,
+        },
+      ],
+      function_call: {
         name: functionName,
-        description: functionDescription,
-        parameters: functionParameters,
       },
-    ],
-    function_call: {
-      name: functionName,
     },
-  });
+    {
+      headers: {
+        'X-Starlight-Message-Id': message.id,
+        'X-Starlight-Function-Name': functionName,
+      },
+    },
+  );
 
   send(ws, {
     type: WebSocketResponseType.message,

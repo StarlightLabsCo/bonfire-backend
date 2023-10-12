@@ -62,12 +62,12 @@ async function generateImage(
       id: replicateRequestLog.id,
     },
     data: {
-      imageURL: output as unknown as string[0],
+      imageURL: (output as string[])[0],
       time: finishDate.getTime() - date.getTime(),
     },
   });
 
-  return output as string[];
+  return (output as string[])[0];
 }
 
 export { generateImage };
