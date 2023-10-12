@@ -1,9 +1,8 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
-import { Message, MessageRole } from '@prisma/client';
+import { MessageRole } from '@prisma/client';
 import db from '../lib/db';
 import { step } from '../core/story';
-import { WebSocketResponseType, send } from '../websocket-schema';
 
 async function addPlayerMessage(
   ws: ServerWebSocket<WebSocketData>,

@@ -21,31 +21,51 @@ async function generateSuggestions(
 
   const messages = await getMessages(instanceId);
 
-  const response = await openai.chat.completions.create({
-    messages: messages,
-    model: 'gpt-4',
-    functions: [
-      {
-        name: 'generate_suggestions',
-        description:
-          'Given the the current story, generate a list of short (~2-5 words) for the players to choose from. This should be a list of 2-3 options, each with a short description of what the option is. The players will choose one of these options, and the story will continue from there.',
-        parameters: {
-          type: 'object',
-          properties: {
-            suggestions: {
-              type: 'array',
-              items: {
-                type: 'string',
+  let suggestions = await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: '',
+      role: 'function',
+    },
+  });
+
+  const response = await openai.chat.completions.create(
+    {
+      messages: messages,
+      model: 'gpt-4',
+      functions: [
+        {
+          name: 'generate_suggestions',
+          description:
+            'Given the the current story, generate a list of short (~2-5 words) for the players to choose from. This should be a list of 2-3 options, each with a short description of what the option is. The players will choose one of these options, and the story will continue from there.',
+          parameters: {
+            type: 'object',
+            properties: {
+              suggestions: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
               },
             },
           },
         },
+      ],
+      function_call: {
+        name: 'generate_suggestions',
       },
-    ],
-    function_call: {
-      name: 'generate_suggestions',
     },
-  });
+    {
+      headers: {
+        'X-Starlight-Message-Id': suggestions.id,
+        'X-Starlight-Function-Name': 'generate_suggestions',
+      },
+    },
+  );
 
   const args = response.choices[0].message.function_call?.arguments;
 
@@ -61,15 +81,12 @@ async function generateSuggestions(
     payload: argsJSON.suggestions,
   });
 
-  const suggestions = await db.message.create({
+  suggestions = await db.message.update({
+    where: {
+      id: suggestions.id,
+    },
     data: {
-      instance: {
-        connect: {
-          id: instanceId,
-        },
-      },
       content,
-      role: 'function',
     },
   });
 

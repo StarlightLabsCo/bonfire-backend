@@ -103,6 +103,72 @@ model Message {
   role    MessageRole
   content String
 
+  openAIRequestLog     OpenAIRequestLog?
+  elevenLabsRequestLog ElevenLabsRequestLog?
+  replicateRequestLog  ReplicateRequestLog?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OpenAIRequestLog {
+  id String @id @default(cuid())
+
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String  @unique
+
+  functionName String
+
+  requestUrl     String
+  requestHeaders Json
+  requestBody    Json
+
+  responseHeaders Json
+  responseBody    String // Needs to be string because can be JSON or SSE events
+  responseTime    Int
+
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+
+  streamed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([functionName])
+}
+
+model ReplicateRequestLog {
+  id String @id @default(cuid())
+
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String  @unique
+
+  prompt         String @db.Text
+  negativePrompt String @db.Text
+  width          Int
+  height         Int
+  scheduler      String
+  refine         String
+
+  imageURL String?
+
+  time Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ElevenLabsRequestLog {
+  id String @id @default(cuid())
+
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String  @unique
+
+  // TODO
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
