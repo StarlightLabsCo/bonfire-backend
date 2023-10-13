@@ -111,14 +111,14 @@ async function openaiCompletion(
 
         console.log('[Story] Sending to 11 labs:', args);
 
-        elevenLabsWs.send(JSON.stringify({ text: args }));
+        elevenLabsWs.send(JSON.stringify({ text: args })); // TODO: make this a function in the 11 labs service so it can do logging
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  elevenLabsWs.send(JSON.stringify({ text: '' }));
+  elevenLabsWs.send(JSON.stringify({ text: '' })); // TODO: make this a function in the 11 labs service so it can do logging
 
   // Clean up and send final - removing the stray ending " in the process
   buffer = buffer.replace(/\\n/g, '');
