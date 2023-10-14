@@ -3,6 +3,7 @@ import { WebSocketData } from '..';
 import prisma from '../lib/db';
 import { step } from '../core/story';
 import { WebSocketResponseType, send } from '../websocket-schema';
+import { hasTokensLeft } from '../lib/pricing';
 
 async function createInstanceHandler(
   ws: ServerWebSocket<WebSocketData>,
@@ -11,6 +12,10 @@ async function createInstanceHandler(
     payload: { userId: string; description: string };
   },
 ) {
+  const canPlay = await hasTokensLeft(data.payload.userId, ws);
+  if (!canPlay) return;
+
+  // Normal operation
   try {
     const instance = await prisma.instance.create({
       data: {
