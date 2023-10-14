@@ -3,6 +3,7 @@ import { WebSocketData } from '..';
 import { MessageRole } from '@prisma/client';
 import db from '../lib/db';
 import { step } from '../core/story';
+import { hasTokensLeft } from '../lib/pricing';
 
 async function addPlayerMessage(
   ws: ServerWebSocket<WebSocketData>,
@@ -11,6 +12,10 @@ async function addPlayerMessage(
     payload: { instanceId: string; content: string };
   },
 ) {
+  const canPlay = await hasTokensLeft(ws.data.webSocketToken?.userId!, ws);
+  if (!canPlay) return;
+
+  // Normal Operation
   console.log(
     'addPlayerMessage',
     data.payload.instanceId,

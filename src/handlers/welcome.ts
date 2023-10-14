@@ -1,7 +1,12 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
 import db from '../lib/db';
-import { finishElevenLabsWs, initElevenLabsWs, sendToElevenLabsWs } from '../services/elevenlabs';
+import {
+  finishElevenLabsWs,
+  initElevenLabsWs,
+  sendToElevenLabsWs,
+} from '../services/elevenlabs';
+import { hasTokensLeft } from '../lib/pricing';
 
 async function welcomeHandler(
   ws: ServerWebSocket<WebSocketData>,
@@ -10,6 +15,9 @@ async function welcomeHandler(
     payload: { description: string };
   },
 ) {
+  const canPlay = await hasTokensLeft(ws.data.webSocketToken?.userId!, ws);
+  if (!canPlay) return;
+
   const user = await db.user.findUnique({
     where: {
       id: ws.data.webSocketToken?.userId,
