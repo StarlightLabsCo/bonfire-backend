@@ -1,6 +1,7 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
 import { WebSocketResponseType, send } from '../websocket-schema';
+import db from '../lib/db';
 
 // Documentation: https://docs.elevenlabs.io/api-reference/text-to-speech-websockets
 
@@ -54,4 +55,44 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
   });
 }
 
-export { initElevenLabsWs };
+let requestedText: { [key: string]: string } = {};
+
+async function sendToElevenLabsWs(
+  elevenLabsWs: WebSocket,
+  messageId: string,
+  args: string,
+) {
+  elevenLabsWs.send(JSON.stringify({ text: args }));
+
+  // TODO: technically means we're not logging the welcome messages we're generating (since they don't have a message id, but that's fine for now)
+  if (messageId.length > 0) {
+    if (!requestedText[messageId]) {
+      requestedText[messageId] = args;
+    } else {
+      requestedText[messageId] += args;
+    }
+  }
+}
+
+async function finishElevenLabsWs(elevenLabsWs: WebSocket, messageId: string) {
+  elevenLabsWs.send(JSON.stringify({ text: '' }));
+
+  // TODO: technically means we're not logging the welcome messages we're generating (since they don't have a message id, but that's fine for now)
+  if (messageId.length > 0) {
+    await db.message.update({
+      where: {
+        id: messageId,
+      },
+      data: {
+        elevenLabsRequestLog: {
+          create: {
+            requestedCharacters: requestedText[messageId],
+            numCharacters: requestedText[messageId].length,
+          },
+        },
+      },
+    });
+  }
+}
+
+export { initElevenLabsWs, sendToElevenLabsWs, finishElevenLabsWs };

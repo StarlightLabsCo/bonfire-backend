@@ -1,7 +1,7 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
 import db from '../lib/db';
-import { initElevenLabsWs } from '../services/elevenlabs';
+import { finishElevenLabsWs, initElevenLabsWs, sendToElevenLabsWs } from '../services/elevenlabs';
 
 async function welcomeHandler(
   ws: ServerWebSocket<WebSocketData>,
@@ -26,8 +26,8 @@ async function welcomeHandler(
   let initialWelcome = `Ah, hello ${name}. Are you ready for an adventure?`; // TODO: make this dynamic
 
   let elevenLabsWs = await initElevenLabsWs(ws);
-  elevenLabsWs.send(JSON.stringify({ text: initialWelcome })); // TODO: make this a function in the 11 labs service so it can do logging
-  elevenLabsWs.send(JSON.stringify({ text: '' }));
+  sendToElevenLabsWs(elevenLabsWs, '', initialWelcome);
+  finishElevenLabsWs(elevenLabsWs, '');
 }
 
 export { welcomeHandler };

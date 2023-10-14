@@ -2,7 +2,11 @@ import { ServerWebSocket } from 'bun';
 import { MessageRole } from '@prisma/client';
 import db from '../lib/db';
 import { openai } from '../services/openai';
-import { initElevenLabsWs } from '../services/elevenlabs';
+import {
+  finishElevenLabsWs,
+  initElevenLabsWs,
+  sendToElevenLabsWs,
+} from '../services/elevenlabs';
 
 import { WebSocketData } from '..';
 import { initStory } from './init';
@@ -111,14 +115,14 @@ async function openaiCompletion(
 
         console.log('[Story] Sending to 11 labs:', args);
 
-        elevenLabsWs.send(JSON.stringify({ text: args })); // TODO: make this a function in the 11 labs service so it can do logging
+        sendToElevenLabsWs(elevenLabsWs, message.id, args);
       }
     } catch (err) {
       console.error(err);
     }
   }
 
-  elevenLabsWs.send(JSON.stringify({ text: '' })); // TODO: make this a function in the 11 labs service so it can do logging
+  finishElevenLabsWs(elevenLabsWs, message.id);
 
   // Clean up and send final - removing the stray ending " in the process
   buffer = buffer.replace(/\\n/g, '');
