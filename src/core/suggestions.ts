@@ -137,7 +137,7 @@ async function generateAdventureSuggestions(
         {
           name: 'generate_new_adventure_suggestions',
           description:
-            'Suggestions should be entirely unique (max 20 characters). Each title should be completely unrelated to each other. Be vibrant, and creative! Use verbs to describe actions! No colons or semicolons.',
+            'Suggestions should be entirely unique (max 20 characters). Each title should be completely unrelated to each other. Be vibrant, and creative! Use verbs to describe actions! e.g. No colons or semicolons. [3 suggestions max]',
           parameters: {
             type: 'object',
             properties: {

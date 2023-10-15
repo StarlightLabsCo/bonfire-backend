@@ -18,6 +18,10 @@ export const MODEL_COSTS = {
     prompt: 0.0015 / 1000,
     completion: 0.002 / 1000,
   },
+  'gpt-3.5-turbo-0613': {
+    prompt: 0.0015 / 1000,
+    completion: 0.002 / 1000,
+  },
   'gpt-3.5-turbo-16k': {
     prompt: 0.003 / 1000,
     completion: 0.004 / 1000,
