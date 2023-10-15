@@ -69,6 +69,15 @@ async function hasTokensLeft(
   userId: string,
   ws: ServerWebSocket<WebSocketData>,
 ) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  // Testers get unlimited credits
+  if (user?.isTester) return true;
+
   // Check to see how many credits they've used total
   const instances = await prisma.instance.findMany({
     where: {
