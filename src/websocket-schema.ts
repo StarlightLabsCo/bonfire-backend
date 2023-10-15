@@ -4,6 +4,7 @@ import { WebSocketData } from '.';
 // Place to keep track of all the websocket responses from server to client
 
 enum WebSocketResponseType {
+  'adventure-suggestions',
   'instance',
   'message',
   'message-append',

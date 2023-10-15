@@ -1,8 +1,10 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
 import db from '../lib/db';
+import { hasTokensLeft } from '../lib/pricing';
+import { generateAdventureSuggestions } from '../core/suggestions';
 
-async function AuthHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
+async function authHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
   const token = data.payload;
 
   const webSocketToken = await db.webSocketAuthenticationToken.findUnique({
@@ -17,7 +19,17 @@ async function AuthHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
     console.log('Websocket authenticated. User ID: ' + webSocketToken.userId);
 
     clearTimeout(ws.data.timeout!);
+
+    // Generating suggestions for adventures
+    const canPlay = await hasTokensLeft(webSocketToken.userId, ws);
+    if (!canPlay) return;
+
+    console.log(
+      'Generating adventure suggestions for user',
+      webSocketToken.userId,
+    );
+    generateAdventureSuggestions(ws, webSocketToken.userId);
   }
 }
 
-export { AuthHandler };
+export { authHandler };

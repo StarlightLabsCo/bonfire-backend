@@ -15,7 +15,7 @@ async function processVoiceInput(
 async function processVoiceEnd(
   ws: ServerWebSocket<WebSocketData>,
   data: {
-    type: 'voice_end';
+    type: 'voiceEnd';
   },
 ) {
   finishTranscription(ws);

@@ -93,9 +93,6 @@ async function hasTokensLeft(
       instance.messages.reduce((acc, message) => {
         if (message.role === 'user') return acc;
 
-        console.log('---------');
-        console.log(message.role);
-
         const openai = message.openAIRequestLog
           ? openAICost(message.openAIRequestLog)
           : 0;
@@ -105,11 +102,6 @@ async function hasTokensLeft(
         const replicate = message.replicateRequestLog
           ? replicateCost(message.replicateRequestLog)
           : 0;
-
-        console.log('openai', openai);
-        console.log('elevenlabs', elevenlabs);
-        console.log('replicate', replicate);
-        console.log(openai + elevenlabs + replicate);
 
         return acc + openai + elevenlabs + replicate;
       }, 0)

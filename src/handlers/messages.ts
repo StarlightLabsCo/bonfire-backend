@@ -8,7 +8,7 @@ import { hasTokensLeft } from '../lib/pricing';
 async function addPlayerMessage(
   ws: ServerWebSocket<WebSocketData>,
   data: {
-    type: 'add-player-message';
+    type: 'addPlayerMessage';
     payload: { instanceId: string; content: string };
   },
 ) {
@@ -16,11 +16,6 @@ async function addPlayerMessage(
   if (!canPlay) return;
 
   // Normal Operation
-  console.log(
-    'addPlayerMessage',
-    data.payload.instanceId,
-    data.payload.content,
-  );
   await db.message.create({
     data: {
       instance: {

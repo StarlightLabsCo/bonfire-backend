@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketAuthenticationToken } from '@prisma/client';
-import { AuthHandler } from './handlers/auth';
+import { authHandler } from './handlers/auth';
 import { welcomeHandler } from './handlers/welcome';
 import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage, undo } from './handlers/messages';
@@ -14,12 +14,12 @@ export type WebSocketData = {
 const handlers: {
   [key: string]: (ws: ServerWebSocket<WebSocketData>, data: any) => void;
 } = {
-  auth: AuthHandler,
+  auth: authHandler,
   welcome: welcomeHandler,
-  'create-instance': createInstanceHandler,
+  createInstance: createInstanceHandler,
   voice: processVoiceInput,
-  'voice-end': processVoiceEnd,
-  'add-player-message': addPlayerMessage,
+  voiceEnd: processVoiceEnd,
+  addPlayerMessage: addPlayerMessage,
   undo: undo,
 };
 
