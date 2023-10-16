@@ -34,52 +34,69 @@ async function generateSuggestions(
     },
   });
 
-  const response = await openai.chat.completions.create(
-    {
-      messages: messages,
-      model: 'gpt-4',
-      functions: [
-        {
-          name: 'generate_suggestions',
-          description:
-            'Given the the current story, generate a list of short (~2-5 words) for the players to choose from. This should be a list of 2-3 options, each with a short description of what the option is. The players will choose one of these options, and the story will continue from there.',
-          parameters: {
-            type: 'object',
-            properties: {
-              suggestions: {
-                type: 'array',
-                items: {
-                  type: 'string',
+  let suggestionsArray: string[] = [];
+  let retryCount = 0;
+  let retryLimit = 3;
+
+  while (suggestionsArray.length == 0 && retryCount < retryLimit) {
+    retryCount++;
+
+    const response = await openai.chat.completions.create(
+      {
+        messages: messages,
+        model: 'gpt-4',
+        functions: [
+          {
+            name: 'generate_suggestions',
+            description:
+              'Given the the current story, generate a list of 1-3 actions for the players to choose from (Max: 3 words). The players will choose one of these options, and the story will continue from there.',
+            parameters: {
+              type: 'object',
+              properties: {
+                actions: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    description:
+                      'A suggested action for the player to take. [Max: 3 words]',
+                  },
+                  description:
+                    'Suggested actions, no duplicates. [Min: 1, Max: 3]',
                 },
               },
             },
           },
+        ],
+        function_call: {
+          name: 'generate_suggestions',
         },
-      ],
-      function_call: {
-        name: 'generate_suggestions',
       },
-    },
-    {
-      headers: {
-        'X-Starlight-Message-Id': suggestions.id,
-        'X-Starlight-Function-Name': 'generate_suggestions',
+      {
+        headers: {
+          'X-Starlight-Message-Id': suggestions.id,
+          'X-Starlight-Function-Name': 'generate_suggestions',
+        },
       },
-    },
-  );
+    );
 
-  const args = response.choices[0].message.function_call?.arguments;
+    const args = response.choices[0].message.function_call?.arguments;
+    if (!args) {
+      continue;
+    }
 
-  if (!args) {
-    console.error('No suggestions found');
+    const argsJSON = JSON.parse(args);
+
+    suggestionsArray = argsJSON.actions || argsJSON.payload;
+  }
+
+  if (suggestionsArray.length == 0) {
+    console.error('Failed to generate suggestions.');
     return;
   }
 
-  const argsJSON = JSON.parse(args);
-
   let content = JSON.stringify({
     type: 'generate_suggestions',
-    payload: argsJSON.suggestions,
+    payload: suggestionsArray,
   });
 
   suggestions = await db.message.update({
