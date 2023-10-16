@@ -5,6 +5,8 @@ import db from '../lib/db';
 
 // Documentation: https://docs.elevenlabs.io/api-reference/text-to-speech-websockets
 
+export let userIdToElevenLabsWs: { [key: string]: WebSocket } = {};
+
 async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
   if (!process.env.NARRATOR_VOICE_ID) {
     throw new Error('NARRATOR_VOICE_ID is not defined');
@@ -41,15 +43,18 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
     });
   });
   elevenWs.addEventListener('error', (err) => {
+    delete userIdToElevenLabsWs[ws.data.webSocketToken?.userId!];
     console.error('Error from 11 labs.', err);
   });
   elevenWs.addEventListener('close', () => {
+    delete userIdToElevenLabsWs[ws.data.webSocketToken?.userId!];
     console.log('Disconnected from 11 labs.');
   });
 
   // return elevenWas after it's connected
   return new Promise<WebSocket>((resolve) => {
     elevenWs.addEventListener('open', () => {
+      userIdToElevenLabsWs[ws.data.webSocketToken?.userId!] = elevenWs;
       resolve(elevenWs);
     });
   });
@@ -62,6 +67,8 @@ async function sendToElevenLabsWs(
   messageId: string,
   args: string,
 ) {
+  if (elevenLabsWs.readyState != WebSocket.OPEN) return;
+
   elevenLabsWs.send(JSON.stringify({ text: args }));
 
   // TODO: technically means we're not logging the welcome messages we're generating (since they don't have a message id, but that's fine for now)
@@ -75,6 +82,8 @@ async function sendToElevenLabsWs(
 }
 
 async function finishElevenLabsWs(elevenLabsWs: WebSocket, messageId: string) {
+  if (elevenLabsWs.readyState != WebSocket.OPEN) return;
+
   elevenLabsWs.send(JSON.stringify({ text: '' }));
 
   // TODO: technically means we're not logging the welcome messages we're generating (since they don't have a message id, but that's fine for now)

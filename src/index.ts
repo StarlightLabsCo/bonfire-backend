@@ -5,6 +5,7 @@ import { welcomeHandler } from './handlers/welcome';
 import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage, undo } from './handlers/messages';
 import { processVoiceEnd, processVoiceInput } from './handlers/voice';
+import { stopAudioHandler } from './handlers/stopAudio';
 
 export type WebSocketData = {
   timeout: Timer | null;
@@ -21,6 +22,7 @@ const handlers: {
   voiceEnd: processVoiceEnd,
   addPlayerMessage: addPlayerMessage,
   undo: undo,
+  stopAudio: stopAudioHandler,
 };
 
 const server = Bun.serve<WebSocketData>({
