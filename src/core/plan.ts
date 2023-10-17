@@ -36,7 +36,7 @@ async function planStory(instanceId: string) {
         {
           name: 'plan_story',
           description:
-            'Image a detailed plan for the story. This should describes the overarching story, the main characters, twists, and the main goal. This will only be reference to yourself, the storyteller, and not to be shared with the players. Be specific in your plan, naming characters, locations, events and make sure to include the players in the story. No newlines.',
+            'Imagine a detailed plan for the story. Describe the overarching story, the main characters, twists, the main goal, as well as smaller scale beats and memorable moments. This will only be referenced by yourself, the storyteller, should not be shared with the players. Be specific in your plan, naming characters, locations, events in depth while making sure to include the players in the story. Always think a few steps ahead to make the story feel alive. No newlines.',
           parameters: {
             type: 'object',
             properties: {
@@ -78,4 +78,94 @@ async function planStory(instanceId: string) {
   });
 }
 
-export { planStory };
+async function plan(instanceId: string) {
+  const instance = await db.instance.findUnique({
+    where: {
+      id: instanceId,
+    },
+  });
+
+  if (!instance) {
+    throw new Error('[plan] Instance not found');
+  }
+
+  let messages = await getMessages(instanceId);
+
+  const message = await db.message.create({
+    data: {
+      instance: {
+        connect: {
+          id: instanceId,
+        },
+      },
+      content: '',
+      role: MessageRole.system,
+    },
+  });
+
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === MessageRole.assistant) {
+      messages[i].content = '[Narration]: ' + messages[i].content;
+    }
+  }
+
+  messages.push({
+    content: '[Narrator Inner Monologue] I will ',
+    role: MessageRole.assistant,
+  });
+
+  console.log('[generate_narrator_internal_monologue_plan] messages', messages);
+  const response = await openai.chat.completions.create(
+    {
+      messages: messages,
+      model: 'gpt-4',
+      functions: [
+        {
+          name: 'generate_narrator_internal_monologue_plan',
+          description:
+            'A one sentence describing how you, the narrator, will adjust the story based on the player\'s last message. This should be a short sentence that begins with "I will" or "I\'ll". Provide indepth thought process, and a full sentence. Include the full sentence. Do not repeat prior information. No newlines.',
+          parameters: {
+            type: 'object',
+            properties: {
+              plan: {
+                type: 'string',
+              },
+            },
+          },
+        },
+      ],
+      function_call: {
+        name: 'generate_narrator_internal_monologue_plan',
+      },
+    },
+    {
+      headers: {
+        'X-Starlight-Message-Id': message.id,
+        'X-Starlight-Function-Name':
+          'generate_narrator_internal_monologue_plan',
+      },
+    },
+  );
+
+  if (!response.choices[0].message.function_call) {
+    console.error('[generate_narrator_plan] No function call found');
+    return messages;
+  }
+
+  const args = JSON.parse(response.choices[0].message.function_call.arguments);
+
+  const plan = 'Plan: ' + args.plan.replace('\\n', '').replace('\\"', '"');
+
+  console.log(`[generate_narrator_internal_monologue_plan] ${plan}`);
+
+  await db.message.update({
+    where: {
+      id: message.id,
+    },
+    data: {
+      content: '[Narrator Inner Monologue] ' + plan,
+    },
+  });
+}
+
+export { planStory, plan };

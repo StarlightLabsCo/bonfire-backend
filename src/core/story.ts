@@ -10,11 +10,12 @@ import {
 
 import { WebSocketData } from '..';
 import { initStory } from './init';
-import { planStory } from './plan';
+import { plan, planStory } from './plan';
 import { getMessages } from './utils';
 import { generateSuggestions } from './suggestions';
 import { generateImageFromStory, generateImagePlaceholder } from './images';
 import { WebSocketResponseType, send } from '../websocket-schema';
+import { react } from './feel';
 
 async function openaiCompletion(
   ws: ServerWebSocket<WebSocketData>,
@@ -113,8 +114,6 @@ async function openaiCompletion(
           },
         });
 
-        console.log('[Story] Sending to 11 labs:', args);
-
         sendToElevenLabsWs(elevenLabsWs, message.id, args);
       }
     } catch (err) {
@@ -184,7 +183,7 @@ async function progressStory(
       ws,
       instanceId,
       'introduce_story_and_characters',
-      'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players. Keep it short and punchy. No newlines.',
+      'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players. Keep it short and punchy. Do not exceed a paragraph. No newlines.',
       {
         type: 'object',
         properties: {
@@ -194,13 +193,36 @@ async function progressStory(
         },
       },
     );
+
+    const message = await generateImagePlaceholder(ws, instanceId);
+    generateImageFromStory(ws, message.id);
+
+    await generateSuggestions(ws, instanceId);
   } else {
-    // We have messages, so we need to continue the story
+    // roll a d20 dice
+    const roll = Math.floor(Math.random() * 20) + 1;
+
+    await db.message.create({
+      data: {
+        instance: {
+          connect: {
+            id: instanceId,
+          },
+        },
+        content: `[Dice Roll] Rolling a d20... The player rolled a: ${roll}`,
+        role: MessageRole.system,
+      },
+    });
+
+    // feel
+    await react(instanceId);
+    await plan(instanceId);
+
     await openaiCompletion(
       ws,
       instanceId,
       'continue_story',
-      'Continue the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward, but with correct pacing. Stories should be interesting, but not too fast paced, and not too slow. Expand upon the plan made previously.',
+      'Continue narratoring the story based on the previous messages, integrating what the players said, but also not letting them take over the story. Keep it grounded in the world you created, and make sure to keep the story moving forward, but with correct pacing. Stories should be interesting, but not too fast paced, and not too slow. Expand upon the plan made previously.',
       {
         type: 'object',
         properties: {
@@ -212,14 +234,12 @@ async function progressStory(
         },
       },
     );
+
+    const message = await generateImagePlaceholder(ws, instanceId);
+    generateImageFromStory(ws, message.id);
+
+    await generateSuggestions(ws, instanceId);
   }
-
-  // Generate placeholder so it'll always be infront of the suggestions in the history
-  // also prevents images from coming out of order
-  const message = await generateImagePlaceholder(ws, instanceId);
-
-  generateSuggestions(ws, instanceId);
-  generateImageFromStory(ws, message.id);
 }
 
 export { progressStory as step };

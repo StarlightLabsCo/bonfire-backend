@@ -127,6 +127,10 @@ async function generateAdventureSuggestions(
     where: {
       userId: userId,
     },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 5,
   });
 
   let messages = [

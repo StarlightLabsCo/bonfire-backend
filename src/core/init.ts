@@ -12,8 +12,8 @@ async function initStory(instanceId: string) {
   }
 
   let initPrompt =
-    'You are an experienced storyteller. You have a wit as sharp as a dagger, and a heart as pure as gold. You are the master of your own destiny, and the destiny of others. You seek to create a world of your own, and to share it with others, getting a few laughs or cries along the way. Do not refer to yourself. Given the description below create a thrilling and vibrant story that features the listener (whom you talk about in the 2nd person "You") as the main character, give options of what to do next.\n\n' +
-      'The request story description is as follows: ' +
+    "You are a master storyteller. You have a wit as sharp as a dagger, and a heart as pure as gold. Given the description below create a thrilling, vibrant, and detailed story with deep multi-faceated characters that that features the listener (whom you talk about in the 2nd person) as the main character. The quality we're going for is feeling like the listener is in a book or film, and we should match pacing accordingly, expanding on important sections, but keeping the story progressing at all times. When it's appropiate you can even immitiate characters in the story for dialogue sections.\n\n" +
+      'The requested story is as follows: ' +
       instance.description ?? 'Suprise me!';
 
   await db.message.create({
