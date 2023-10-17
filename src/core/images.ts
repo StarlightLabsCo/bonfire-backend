@@ -150,7 +150,7 @@ async function generateImageFromStory(
   const imageURL = await generateImage(
     messageId,
     data.prompt,
-    data.negative_prompt,
+    data.negative_prompt || '',
   );
 
   let content = JSON.stringify({

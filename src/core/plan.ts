@@ -123,7 +123,7 @@ async function plan(instanceId: string) {
         {
           name: 'generate_narrator_internal_monologue_plan',
           description:
-            'A one sentence describing how you, the narrator, will adjust the story based on the player\'s last message. This should be a short sentence that begins with "I will" or "I\'ll". Provide indepth thought process, and a full sentence. Include the full sentence. Do not repeat prior information. No newlines.',
+            'One sentence describing how you, the narrator, will adjust the story based on the player\'s last message and their corresponding dice roll. (The impact of an action that recieves an average dice roll should still have a meaningful impact on the immediate events in the story.) Your plan should be a short sentence that begins with "I will" or "I\'ll". Provide indepth thought process, and a full sentence. Include the full sentence. Do not repeat prior information. No newlines.',
           parameters: {
             type: 'object',
             properties: {

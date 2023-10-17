@@ -13,7 +13,7 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
   }
 
   let elevenWs = new WebSocket(
-    `wss://api.elevenlabs.io/v1/text-to-speech/${process.env.NARRATOR_VOICE_ID}/stream-input?model_id=eleven_english_v2&output_format=pcm_44100`,
+    `wss://api.elevenlabs.io/v1/text-to-speech/${process.env.NARRATOR_VOICE_ID}/stream-input?model_id=eleven_monolingual_v1&output_format=pcm_44100`,
   );
 
   elevenWs.addEventListener('open', () => {

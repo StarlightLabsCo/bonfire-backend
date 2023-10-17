@@ -16,6 +16,7 @@ import { generateSuggestions } from './suggestions';
 import { generateImageFromStory, generateImagePlaceholder } from './images';
 import { WebSocketResponseType, send } from '../websocket-schema';
 import { react } from './feel';
+import { generateModifierForAction } from './dice';
 
 async function openaiCompletion(
   ws: ServerWebSocket<WebSocketData>,
@@ -200,7 +201,16 @@ async function progressStory(
     await generateSuggestions(ws, instanceId);
   } else {
     // roll a d20 dice
+    const modifierObject = await generateModifierForAction(instanceId);
+    const modifier = modifierObject?.modifier || 0;
+    const reason = modifierObject?.reason || '';
+
     const roll = Math.floor(Math.random() * 20) + 1;
+    const modifiedRoll = roll + (modifier || 0);
+
+    console.log(
+      `[Dice Roll] Rolling a d20... The player rolled a: ${modifiedRoll} [${roll} + ${modifier}] - ${reason}`,
+    );
 
     await db.message.create({
       data: {
@@ -209,7 +219,7 @@ async function progressStory(
             id: instanceId,
           },
         },
-        content: `[Dice Roll] Rolling a d20... The player rolled a: ${roll}`,
+        content: `[Dice Roll] Rolling a d20... The player rolled a: ${modifiedRoll} [${roll} + ${modifier}] - ${reason}`,
         role: MessageRole.system,
       },
     });

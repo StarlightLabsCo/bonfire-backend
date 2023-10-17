@@ -86,7 +86,70 @@ async function generateSuggestions(
 
     const argsJSON = JSON.parse(args);
 
+    // Validation
+    const validationResponse = await openai.chat.completions.create(
+      {
+        messages: messages,
+        model: 'gpt-4',
+        functions: [
+          {
+            name: 'validate_suggestions',
+            description:
+              'Based on the story, are these the most relevant and entertaining possible actions in the current context? Are all the actions unique? Are there 1-3 actions? Have all characters / objects been introduced in the story? Can the player do all of these actions?',
+            parameters: {
+              type: 'object',
+              properties: {
+                answer: {
+                  type: 'string',
+                  description: '[YES / NO]',
+                },
+                reason: {
+                  type: 'string',
+                  description: 'Reason for answer.',
+                },
+              },
+            },
+          },
+        ],
+        function_call: {
+          name: 'validate_suggestions',
+        },
+      },
+      {
+        headers: {
+          'X-Starlight-Message-Id': '',
+          'X-Starlight-Function-Name': 'validate_suggestions',
+        },
+      },
+    );
+
+    if (!validationResponse.choices[0].message.function_call) {
+      console.error('No validation response found');
+      return;
+    }
+
+    console.log(
+      `valid actions?: ${validationResponse.choices[0].message.function_call.arguments}`,
+    );
+
+    const data = JSON.parse(
+      validationResponse.choices[0].message.function_call.arguments,
+    );
+
     suggestionsArray = argsJSON.actions || argsJSON.payload;
+
+    if (data.answer !== 'YES' && data.answer !== 'yes') {
+      messages.push({
+        role: 'system',
+        content:
+          'Previously you generated these suggestions: [' +
+          args +
+          '] but they were not the best possible actions in the current context for this reason [' +
+          data.reason +
+          ']. Please try again.',
+      });
+      continue;
+    }
   }
 
   if (suggestionsArray.length == 0) {
@@ -139,13 +202,11 @@ async function generateAdventureSuggestions(
       content:
         'You are an experienced storyteller, with a sharp wit, a heart of gold and a love for stories. Your goal is to bring people on new experiences.' +
         (instances.length > 0
-          ? `In the past the player has requested these adventures: ${instances
-              .map((instance) => instance.description)
-              .join(
-                ', ',
-              )}.\n\n Come up with 3 new, entirely new, short & vibrant titles for adventures the this player may enjoy. Each title should be completely unrelated to the previous adventures, in different genres too!`
+          ? `In the past the player has requested these adventures, but don't format the phraseology of the titles based on these: ${instances
+              .map((instance) => '- ' + instance.description + '\n')
+              .join('')}.\n`
           : '') +
-        '\n\n',
+        ' Come up with a single new, entirely new, short, curiosity-inspiring title, devoid of alliteration, for adventures this player may enjoy. The title should be completely unrelated to the previous adventures, in different genres too! I repeat, no alliteration!!! Priortize readable and story potential over literary flare. Use verbs for the story premise, and make sure the verbs are something that a person could do. Avoid abstract words & concepts. Adjectives should be meaningful to the nouns they modify. Verbs should be meaningful to their corespoding direct objects. Be creative! Be clear! Be memorable!',
     },
   ] as OpenAIMessage[];
 
@@ -153,7 +214,7 @@ async function generateAdventureSuggestions(
     {
       messages: messages,
       model: 'gpt-4',
-      temperature: 1.0,
+      temperature: 0.95,
       functions: [
         {
           name: 'generate_new_adventure_suggestions',
@@ -166,6 +227,7 @@ async function generateAdventureSuggestions(
                 type: 'array',
                 items: {
                   type: 'string',
+                  description: 'A suggested title for an adventure.',
                 },
               },
             },
