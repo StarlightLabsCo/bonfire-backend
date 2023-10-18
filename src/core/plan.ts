@@ -36,12 +36,13 @@ async function planStory(instanceId: string) {
         {
           name: 'plan_story',
           description:
-            'Imagine a detailed plan for the story. Describe the overarching story, the main characters, twists, the main goal, as well as smaller scale beats and memorable moments. This will only be referenced by yourself, the storyteller, should not be shared with the players. Be specific in your plan, naming characters, locations, events in depth while making sure to include the players in the story. Always think a few steps ahead to make the story feel alive. No newlines.',
+            'Imagine a detailed plan for the story. Describe, in detail, the overarching story, the main characters, twists, the main goal, as well as smaller scale beats and memorable moments. This will only be referenced by yourself, the storyteller, and should not be shared with the players. Be specific in your plan, naming characters, locations, events in depth while making sure to include the players in the story. Always think a few steps ahead to make the story feel alive. No newlines.',
           parameters: {
             type: 'object',
             properties: {
               plan: {
                 type: 'string',
+                description: 'No newlines.',
               },
             },
           },
@@ -59,14 +60,18 @@ async function planStory(instanceId: string) {
     },
   );
 
+  console.log('[plan] response', response);
+
   if (!response.choices[0].message.function_call) {
     console.error('[plan] No function call found');
     return messages;
   }
 
-  const args = JSON.parse(response.choices[0].message.function_call.arguments);
+  const args = JSON.parse(
+    response.choices[0].message.function_call.arguments.replace('\\n', ''),
+  );
 
-  const plan = 'Plan: ' + args.plan.replace('\\n', '').replace('\\"', '"');
+  const plan = 'Plan: ' + args.plan.replace('\\"', '"');
 
   await db.message.update({
     where: {
@@ -123,7 +128,7 @@ async function plan(instanceId: string) {
         {
           name: 'generate_narrator_internal_monologue_plan',
           description:
-            'One sentence describing how you, the narrator, will adjust the story based on the player\'s last message and their corresponding dice roll. (The impact of an action that recieves an average dice roll should still have a meaningful impact on the immediate events in the story.) Your plan should be a short sentence that begins with "I will" or "I\'ll". Provide indepth thought process, and a full sentence. Include the full sentence. Do not repeat prior information. No newlines.',
+            'One sentence describing how you, the narrator, will adjust the story based on the player\'s last action and its corresponding dice roll. (The impact of an action that recieves an average dice roll should still have a meaningful impact on the immediate events in the story.) Your plan should be a single sentence that begins with "I will". Provide an indepth thought process, and a full sentence. Include the full sentence including the initial "I will". Do not repeat prior information. No newlines.',
           parameters: {
             type: 'object',
             properties: {

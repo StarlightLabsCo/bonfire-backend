@@ -5,6 +5,7 @@ import { getMessages } from './utils';
 import { WebSocketData } from '..';
 import { WebSocketResponseType, send } from '../websocket-schema';
 import { Message as OpenAIMessage } from '../services/openai';
+import { MessageRole } from '@prisma/client';
 
 async function generateSuggestions(
   ws: ServerWebSocket<WebSocketData>,
@@ -47,34 +48,49 @@ async function generateSuggestions(
         model: 'gpt-4',
         functions: [
           {
-            name: 'generate_suggestions',
+            name: 'generate_action_suggestions',
             description:
-              'Given the the current story, generate a list of 1-3 actions for the players to choose from (Max: 3 words). The players will choose one of these options, and the story will continue from there.',
+              "List 1-3 optimal actions for players, described in up to 3 words, based on the story. Analyze how past events affect each action's potential success, without predicting outcomes. Assign a unique modifier (-15 to 15) to each action for a d20 roll, reflecting pre-established conditions. Explain the reasoning for each modifier before stating its value.",
             parameters: {
               type: 'object',
               properties: {
                 actions: {
                   type: 'array',
-                  items: {
-                    type: 'string',
-                    description:
-                      'A suggested action for the player to take. [Max: 3 words]',
-                  },
                   description:
                     'Suggested actions, no duplicates. [Min: 1, Max: 3]',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      action: {
+                        type: 'string',
+                        description:
+                          'A suggested action for the player to take. [Min: 1 word, Max: 3 words]',
+                      },
+                      modifier_reason: {
+                        type: 'string',
+                        description:
+                          'The reasoning to determine the modifier for the action. Must not be based on the outcome. Should only be based on prior information. [Min: 1 word, Max: 20 words]',
+                      },
+                      modifier: {
+                        type: 'number',
+                        description:
+                          'Modifier for the action. Must not be based on the outcome of the action. [Min: -15, Max: 15, 0 is neutral and most common]',
+                      },
+                    },
+                  },
                 },
               },
             },
           },
         ],
         function_call: {
-          name: 'generate_suggestions',
+          name: 'generate_action_suggestions',
         },
       },
       {
         headers: {
           'X-Starlight-Message-Id': suggestions.id,
-          'X-Starlight-Function-Name': 'generate_suggestions',
+          'X-Starlight-Function-Name': 'generate_action_suggestions',
         },
       },
     );
@@ -86,6 +102,18 @@ async function generateSuggestions(
 
     const argsJSON = JSON.parse(args);
 
+    if (Array.isArray(argsJSON.actions) && argsJSON.actions.length > 0) {
+      suggestionsArray = argsJSON.actions;
+    } else if (Array.isArray(argsJSON.payload) && argsJSON.payload.length > 0) {
+      suggestionsArray = argsJSON.payload;
+    }
+
+    messages.push({
+      role: MessageRole.function,
+      name: 'generate_action_suggestions',
+      content: args,
+    });
+
     // Validation
     const validationResponse = await openai.chat.completions.create(
       {
@@ -94,8 +122,7 @@ async function generateSuggestions(
         functions: [
           {
             name: 'validate_suggestions',
-            description:
-              'Based on the story, are these the most relevant and entertaining possible actions in the current context? Are all the actions unique? Are there 1-3 actions? Have all characters / objects been introduced in the story? Can the player do all of these actions?',
+            description: `As the narrator, you generated the most recent actions. Based on the story, are these the most relevant and entertaining possible actions in the current context? Are all the actions unique? Are there 1-3 actions? Have all characters / objects been introduced in the story? Can the player do all of these actions in the current situation? If the actions are not valid, provide a reason. If they are valid, leave the reason blank.`,
             parameters: {
               type: 'object',
               properties: {
@@ -128,30 +155,38 @@ async function generateSuggestions(
       return;
     }
 
-    console.log(
-      `valid actions?: ${validationResponse.choices[0].message.function_call.arguments}`,
-    );
-
     const data = JSON.parse(
       validationResponse.choices[0].message.function_call.arguments,
     );
 
-    suggestionsArray = argsJSON.actions || argsJSON.payload;
+    console.log('validation data', data);
 
-    if (data.answer !== 'YES' && data.answer !== 'yes') {
+    if (!data.answer) {
+      console.error('Failed to validate suggestions');
+      continue;
+    }
+
+    if (
+      data.answer &&
+      typeof data.answer === 'string' &&
+      data.answer.toLowerCase().includes('no')
+    ) {
       messages.push({
         role: 'system',
         content:
           'Previously you generated these suggestions: [' +
-          args +
-          '] but they were not the best possible actions in the current context for this reason [' +
+          suggestionsArray +
+          '] but they were not the best possible actions in the current context because [' +
           data.reason +
           ']. Please try again.',
       });
+
+      suggestionsArray = [];
       continue;
     }
   }
 
+  // After validation loop
   if (suggestionsArray.length == 0) {
     console.error('Failed to generate suggestions.');
     return;
@@ -184,8 +219,6 @@ async function generateAdventureSuggestions(
   ws: ServerWebSocket<WebSocketData>,
   userId: string,
 ) {
-  console.log('Generating adventure suggestions for user', userId);
-
   const instances = await db.instance.findMany({
     where: {
       userId: userId,

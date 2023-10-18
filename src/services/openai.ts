@@ -9,6 +9,7 @@ const openai = new OpenAI({
 export type Message = {
   role: 'system' | 'assistant' | 'user' | 'function';
   content: string;
+  name?: string;
 };
 
 export { openai };

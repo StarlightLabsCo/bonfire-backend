@@ -154,23 +154,52 @@ async function progressStory(
   ws: ServerWebSocket<WebSocketData>,
   instanceId: string,
 ) {
+  const instanceFetchStartTime = Date.now(); // DEBUG
   const instance = await db.instance.findUnique({
     where: {
       id: instanceId,
     },
   });
+  const instanceFetchEndTime = Date.now(); // DEBUG
+
+  console.log(
+    `[Progress Story] Fetched instance in ${
+      instanceFetchEndTime - instanceFetchStartTime
+    }ms`,
+  ); // DEBUG
 
   if (!instance) {
     console.error('Instance not found');
     return;
   }
 
+  const messageFetchStartTime = Date.now(); // DEBUG
   const messages = await getMessages(instanceId);
+  const messageFetchEndTime = Date.now(); // DEBUG
+
+  console.log(
+    `[Progress Story] Fetched messages in ${
+      messageFetchEndTime - messageFetchStartTime
+    }ms`,
+  ); // DEBUG
 
   if (messages.length === 0) {
     // No messages, so we need to initialize the story
+    const initStartTime = Date.now(); // DEBUG
     await initStory(instance.id);
+    const initEndTime = Date.now(); // DEBUG
+
+    console.log(
+      `[Progress Story] Initialized story in ${initEndTime - initStartTime}ms`,
+    ); // DEBUG
+
+    const planStartTime = Date.now(); // DEBUG
     await planStory(instance.id);
+    const planEndTime = Date.now(); // DEBUG
+
+    console.log(
+      `[Progress Story] Generated plan in ${planEndTime - planStartTime}ms`,
+    ); // DEBUG
 
     send(ws, {
       type: WebSocketResponseType.instance,
@@ -184,7 +213,7 @@ async function progressStory(
       ws,
       instanceId,
       'introduce_story_and_characters',
-      'Given the pre-created plan, create a irrestiable and vibrant introduction to the beginning of story, settings, and characters ending with a clear decision point where the story begins for the players. Keep it short and punchy. Do not exceed a paragraph. No newlines.',
+      'Given the pre-created plan, paint a vibrant and irrestiable hook of the very beginning of story, the exposition. Colorfully show the setting, and characters ending with a clear decision point where the story begins for the players. Do not skip any major events or decisions. Do not reveal the plan of the story. Do not hint about the path ahead or reveal the outcome. Keep it short and punchy. Do not exceed a paragraph. Be creative! No newlines.',
       {
         type: 'object',
         properties: {
@@ -200,17 +229,74 @@ async function progressStory(
 
     await generateSuggestions(ws, instanceId);
   } else {
-    // roll a d20 dice
-    const modifierObject = await generateModifierForAction(instanceId);
-    const modifier = modifierObject?.modifier || 0;
-    const reason = modifierObject?.reason || '';
+    const diceRollStartTime = Date.now(); // DEBUG
+
+    // Get the player's action from the last message
+    let latestMessage = messages[messages.length - 1];
+    if (latestMessage.role !== MessageRole.user) return;
+
+    const action = latestMessage.content;
+    if (!action) {
+      ws.send(JSON.stringify({ type: 'error', payload: 'No action found' }));
+      return;
+    }
+
+    let modifier = 0;
+    let reason = '';
+
+    // Get the action suggestions from the second to last message, if the sugestion generation failed, just continue
+    const actionSuggestions = messages[messages.length - 2];
+    console.log(actionSuggestions);
+
+    if (
+      actionSuggestions.role == MessageRole.function &&
+      actionSuggestions.name == 'generate_suggestions'
+    ) {
+      console.log('it is a function');
+      const actionSuggestionsData = JSON.parse(actionSuggestions.content);
+      console.log('json', actionSuggestionsData);
+
+      // See if the action exists in the suggestions
+      const suggestion = actionSuggestionsData.find(
+        (suggestion: any) => suggestion.action == action,
+      );
+
+      console.log(suggestion);
+
+      if (suggestion) {
+        console.log('it is a suggestion');
+
+        // If it does, use the modifier and reason from the suggestion
+        console.log(
+          '[GenerateModifier] Found pregenerated modifier and reason -- lets goo.',
+        );
+        modifier = suggestion.modifier;
+        reason = suggestion.modifier_reason;
+      }
+    }
+
+    if (modifier == 0 || reason.length == 0) {
+      console.log(
+        '[GenerateModifier] Could not find action suggestion, generating modifier for action',
+      );
+      const modifierObject = await generateModifierForAction(instanceId);
+      modifier = modifierObject?.modifier || 0;
+      reason = modifierObject?.reason || '';
+    }
 
     const roll = Math.floor(Math.random() * 20) + 1;
-    const modifiedRoll = roll + (modifier || 0);
+
+    let modifiedRoll = roll + (modifier || 0);
+    modifiedRoll = Math.max(0, modifiedRoll);
+    modifiedRoll = Math.min(20, modifiedRoll);
+
+    const diceRollEndTime = Date.now(); // DEBUG
 
     console.log(
-      `[Dice Roll] Rolling a d20... The player rolled a: ${modifiedRoll} [${roll} + ${modifier}] - ${reason}`,
-    );
+      `[Progress Story] Generated modifier + rolled dice in ${
+        diceRollEndTime - diceRollStartTime
+      }ms`,
+    ); // DEBUG
 
     await db.message.create({
       data: {
@@ -225,8 +311,23 @@ async function progressStory(
     });
 
     // feel
+    const reactStartTime = Date.now(); // DEBUG
     await react(instanceId);
+    const reactEndTime = Date.now(); // DEBUG
+
+    console.log(
+      `[Progress Story] Generated narrator reaction in ${
+        reactEndTime - reactStartTime
+      }ms`,
+    ); // DEBUG
+
+    const planStartTime = Date.now(); // DEBUG
     await plan(instanceId);
+    const planEndTime = Date.now(); // DEBUG
+
+    console.log(
+      `[Progress Story] Generated plan in ${planEndTime - planStartTime}ms`,
+    ); // DEBUG
 
     await openaiCompletion(
       ws,

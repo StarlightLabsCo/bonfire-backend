@@ -12,7 +12,16 @@ async function addPlayerMessage(
     payload: { instanceId: string; content: string };
   },
 ) {
+  const startTime = Date.now(); // Profiling
   const canPlay = await hasTokensLeft(ws.data.webSocketToken?.userId!, ws);
+  const endTime = Date.now(); // Profiling
+
+  console.log(
+    '[addPlayerMessage] hasTokensLeft took:',
+    endTime - startTime,
+    'ms',
+  );
+
   if (!canPlay) return;
 
   // Normal Operation

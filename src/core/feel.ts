@@ -23,7 +23,7 @@ export async function react(instanceId: string) {
   }
 
   messages.push({
-    content: '[Narrator Inner Monologue] I feel ',
+    content: '[Narrator Inner Monologue] As the narrator, I feel ',
     role: MessageRole.assistant,
   });
 
@@ -46,12 +46,12 @@ export async function react(instanceId: string) {
   const response = await openai.chat.completions.create(
     {
       messages: messages,
-      model: 'gpt-4',
+      model: 'gpt-3.5-turbo',
       functions: [
         {
           name: 'generate_narrator_internal_monologue_reaction',
           description:
-            'From the perspective of the narrator, create a one sentence reaction based on the last player message, their dice roll, and its impact on the story beginning with the words "I feel" with a reasoning as well. Include the full sentence. Do not repeat prior information. No newlines.',
+            'From the perspective of the narrator, create a one sentence reaction based on the last player action (and the correspodning dice roll) and its impact on the story beginning with the words "I feel" with a reasoning as well. Include the full sentence. Do not exactly copy prior information. Stick to new info. No newlines.',
           parameters: {
             type: 'object',
             properties: {
@@ -84,7 +84,9 @@ export async function react(instanceId: string) {
 
   const args = JSON.parse(response.choices[0].message.function_call.arguments);
 
-  const reaction = args.reaction.replace('\\n', '').replace('\\"', '"');
+  const reaction =
+    'Reaction: As the narrator, I feel ' +
+    args.reaction.replace('\\n', '').replace('\\"', '"');
 
   console.log(`[generate_narrator_internal_monologue_reaction] ${reaction}`);
 

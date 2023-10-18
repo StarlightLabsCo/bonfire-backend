@@ -1,4 +1,4 @@
-import { Message, MessageRole } from '@prisma/client';
+import { MessageRole } from '@prisma/client';
 import { Message as OpenAIMessage } from '../services/openai';
 import db from '../lib/db';
 
@@ -18,7 +18,7 @@ async function getMessages(instanceId: string) {
 
       return {
         role: message.role,
-        content: message.content,
+        content: JSON.stringify(args.payload),
         name: args.type,
       };
     } else {
