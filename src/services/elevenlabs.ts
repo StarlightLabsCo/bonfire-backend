@@ -46,7 +46,7 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
     delete userIdToElevenLabsWs[ws.data.webSocketToken?.userId!];
     console.error('Error from 11 labs.', err);
   });
-  elevenWs.addEventListener('close', () => {
+  elevenWs.addEventListener('close', (event) => {
     delete userIdToElevenLabsWs[ws.data.webSocketToken?.userId!];
     console.log('Disconnected from 11 labs.');
   });
