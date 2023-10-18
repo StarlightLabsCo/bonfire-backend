@@ -125,10 +125,10 @@ async function hasTokensLeft(
 
   if (totalCost >= 5.0) {
     send(ws, {
-      type: WebSocketResponseType.error,
+      type: WebSocketResponseType.outOfCredits,
       payload: {
         id: '',
-        content: 'You have used all of your free credits.',
+        content: '',
       },
     });
 

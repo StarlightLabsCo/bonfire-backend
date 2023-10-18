@@ -13,9 +13,9 @@ enum WebSocketResponseType {
   'suggestions',
   'audio',
   'transcription',
+  'outOfCredits',
   'error',
 }
-
 type WebSocketResponse = {
   type: WebSocketResponseType;
   payload: {
