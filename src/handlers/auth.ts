@@ -11,7 +11,7 @@ async function authHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
     where: token,
   });
 
-  if (!webSocketToken) {
+  if (!webSocketToken || webSocketToken.expires < new Date()) {
     console.error('Provided token is invalid.');
     return;
   } else {
