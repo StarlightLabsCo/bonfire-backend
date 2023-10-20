@@ -12,17 +12,20 @@ async function addPlayerMessage(
     payload: { instanceId: string; content: string };
   },
 ) {
-  const startTime = Date.now(); // Profiling
   const canPlay = await hasTokensLeft(ws.data.webSocketToken?.userId!, ws);
-  const endTime = Date.now(); // Profiling
-
-  console.log(
-    '[addPlayerMessage] hasTokensLeft took:',
-    endTime - startTime,
-    'ms',
-  );
-
   if (!canPlay) return;
+
+  const instance = await db.instance.findUnique({
+    where: {
+      id: data.payload.instanceId,
+      userId: ws.data.webSocketToken?.userId!,
+    },
+    include: { messages: true },
+  });
+
+  if (!instance) {
+    return;
+  }
 
   // Normal Operation
   await db.message.create({
@@ -47,6 +50,18 @@ async function undo(
     payload: { instanceId: string };
   },
 ) {
+  const instance = await db.instance.findUnique({
+    where: {
+      id: data.payload.instanceId,
+      userId: ws.data.webSocketToken?.userId!,
+    },
+    include: { messages: true },
+  });
+
+  if (!instance) {
+    return;
+  }
+
   async function getMessagesToUndo() {
     const messages = await db.message.findMany({
       where: {
