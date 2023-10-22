@@ -14,7 +14,8 @@ export async function generateModifierForAction(instanceId: string) {
     throw new Error('[planStory] Instance not found');
   }
 
-  const messages = await getMessages(instanceId);
+  let messages = await getMessages(instanceId);
+  messages = messages.filter((message) => message.role != MessageRole.function);
 
   for (let i = 0; i < messages.length; i++) {
     if (messages[i].role === MessageRole.assistant) {

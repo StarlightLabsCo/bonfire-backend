@@ -3,7 +3,7 @@ import { MessageRole } from '@prisma/client';
 import db from '../lib/db';
 import { openai } from '../services/openai';
 import { generateImage } from '../services/sdxl';
-import { getMessages, messagesToString } from './utils';
+import { getMessages } from './utils';
 import { WebSocketData } from '..';
 import { WebSocketResponseType, send } from '../websocket-schema';
 
@@ -72,8 +72,13 @@ async function generateImageFromStory(
     throw new Error('[generateAndUpdateImage] Message not found');
   }
 
-  const messages = await getMessages(message.instanceId);
-  const story = messagesToString(messages);
+  let messages = await getMessages(message.instanceId);
+  messages = messages.filter((message) => message.role != MessageRole.function);
+  messages = messages.slice(-5);
+
+  let story = messages
+    .map((message) => message.role + ': ' + message.content)
+    .join('\n');
 
   const response = await openai.chat.completions.create(
     {

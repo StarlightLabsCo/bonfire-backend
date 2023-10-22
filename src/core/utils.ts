@@ -32,19 +32,4 @@ async function getMessages(instanceId: string) {
   return openAiMessages;
 }
 
-const messagesToString = (messages: OpenAIMessage[]) => {
-  const string = messages.reduce((acc, message) => {
-    if (message.role === 'user') {
-      return acc + 'Player: ' + message.content + '\n';
-    }
-    if (message.role === 'assistant') {
-      return acc + 'Narrator: ' + message.content + '\n';
-    } else {
-      return acc;
-    }
-  }, '');
-
-  return string;
-};
-
-export { getMessages, messagesToString };
+export { getMessages };

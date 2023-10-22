@@ -21,7 +21,9 @@ async function generateSuggestions(
     throw new Error('[planStory] Instance not found');
   }
 
-  const messages = await getMessages(instanceId);
+  let messages = await getMessages(instanceId);
+  messages = messages.filter((message) => message.role != MessageRole.function);
+  messages = messages.slice(-5);
 
   let suggestions = await db.message.create({
     data: {

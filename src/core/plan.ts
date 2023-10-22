@@ -95,6 +95,14 @@ async function plan(instanceId: string) {
   }
 
   let messages = await getMessages(instanceId);
+  messages = messages.filter((message) => message.role != MessageRole.function);
+
+  // Add narration prefix to assistant messages
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === MessageRole.assistant) {
+      messages[i].content = '[Narration]: ' + messages[i].content;
+    }
+  }
 
   const message = await db.message.create({
     data: {
@@ -108,18 +116,11 @@ async function plan(instanceId: string) {
     },
   });
 
-  for (let i = 0; i < messages.length; i++) {
-    if (messages[i].role === MessageRole.assistant) {
-      messages[i].content = '[Narration]: ' + messages[i].content;
-    }
-  }
-
   messages.push({
     content: '[Narrator Inner Monologue] I will ',
     role: MessageRole.assistant,
   });
 
-  console.log('[generate_narrator_internal_monologue_plan] messages', messages);
   const response = await openai.chat.completions.create(
     {
       messages: messages,

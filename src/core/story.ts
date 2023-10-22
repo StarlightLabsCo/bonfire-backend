@@ -44,9 +44,14 @@ async function openaiCompletion(
     initElevenLabsWs(ws),
   ]);
 
+  // Remove generate_image, and generate_suggestions messages, to save on tokens
+  const filteredMessages = messages.filter(
+    (message) => message.role != MessageRole.function,
+  );
+
   const response = await openai.chat.completions.create(
     {
-      messages: messages,
+      messages: filteredMessages,
       model: 'gpt-4',
       stream: true,
       functions: [
@@ -154,52 +159,22 @@ async function progressStory(
   ws: ServerWebSocket<WebSocketData>,
   instanceId: string,
 ) {
-  const instanceFetchStartTime = Date.now(); // DEBUG
   const instance = await db.instance.findUnique({
     where: {
       id: instanceId,
     },
   });
-  const instanceFetchEndTime = Date.now(); // DEBUG
-
-  console.log(
-    `[Progress Story] Fetched instance in ${
-      instanceFetchEndTime - instanceFetchStartTime
-    }ms`,
-  ); // DEBUG
 
   if (!instance) {
     console.error('Instance not found');
     return;
   }
 
-  const messageFetchStartTime = Date.now(); // DEBUG
   const messages = await getMessages(instanceId);
-  const messageFetchEndTime = Date.now(); // DEBUG
-
-  console.log(
-    `[Progress Story] Fetched messages in ${
-      messageFetchEndTime - messageFetchStartTime
-    }ms`,
-  ); // DEBUG
 
   if (messages.length === 0) {
-    // No messages, so we need to initialize the story
-    const initStartTime = Date.now(); // DEBUG
     await initStory(instance.id);
-    const initEndTime = Date.now(); // DEBUG
-
-    console.log(
-      `[Progress Story] Initialized story in ${initEndTime - initStartTime}ms`,
-    ); // DEBUG
-
-    const planStartTime = Date.now(); // DEBUG
     await planStory(instance.id);
-    const planEndTime = Date.now(); // DEBUG
-
-    console.log(
-      `[Progress Story] Generated plan in ${planEndTime - planStartTime}ms`,
-    ); // DEBUG
 
     send(ws, {
       type: WebSocketResponseType.instance,
@@ -229,8 +204,6 @@ async function progressStory(
 
     await generateSuggestions(ws, instanceId);
   } else {
-    const diceRollStartTime = Date.now(); // DEBUG
-
     // Get the player's action from the last message
     let latestMessage = messages[messages.length - 1];
     if (latestMessage.role !== MessageRole.user) return;
@@ -246,30 +219,19 @@ async function progressStory(
 
     // Get the action suggestions from the second to last message, if the sugestion generation failed, just continue
     const actionSuggestions = messages[messages.length - 2];
-    console.log(actionSuggestions);
 
     if (
       actionSuggestions.role == MessageRole.function &&
       actionSuggestions.name == 'generate_suggestions'
     ) {
-      console.log('it is a function');
       const actionSuggestionsData = JSON.parse(actionSuggestions.content);
-      console.log('json', actionSuggestionsData);
 
       // See if the action exists in the suggestions
       const suggestion = actionSuggestionsData.find(
         (suggestion: any) => suggestion.action == action,
       );
 
-      console.log(suggestion);
-
       if (suggestion) {
-        console.log('it is a suggestion');
-
-        // If it does, use the modifier and reason from the suggestion
-        console.log(
-          '[GenerateModifier] Found pregenerated modifier and reason -- lets goo.',
-        );
         modifier = suggestion.modifier;
         reason = suggestion.modifier_reason;
       }
@@ -290,14 +252,6 @@ async function progressStory(
     modifiedRoll = Math.max(0, modifiedRoll);
     modifiedRoll = Math.min(20, modifiedRoll);
 
-    const diceRollEndTime = Date.now(); // DEBUG
-
-    console.log(
-      `[Progress Story] Generated modifier + rolled dice in ${
-        diceRollEndTime - diceRollStartTime
-      }ms`,
-    ); // DEBUG
-
     await db.message.create({
       data: {
         instance: {
@@ -310,24 +264,8 @@ async function progressStory(
       },
     });
 
-    // feel
-    const reactStartTime = Date.now(); // DEBUG
     await react(instanceId);
-    const reactEndTime = Date.now(); // DEBUG
-
-    console.log(
-      `[Progress Story] Generated narrator reaction in ${
-        reactEndTime - reactStartTime
-      }ms`,
-    ); // DEBUG
-
-    const planStartTime = Date.now(); // DEBUG
     await plan(instanceId);
-    const planEndTime = Date.now(); // DEBUG
-
-    console.log(
-      `[Progress Story] Generated plan in ${planEndTime - planStartTime}ms`,
-    ); // DEBUG
 
     await openaiCompletion(
       ws,

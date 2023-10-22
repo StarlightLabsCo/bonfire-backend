@@ -15,7 +15,9 @@ export async function react(instanceId: string) {
   }
 
   let messages = await getMessages(instanceId);
+  messages = messages.filter((message) => message.role != MessageRole.function);
 
+  // Add narration prefix to assistant messages
   for (let i = 0; i < messages.length; i++) {
     if (messages[i].role === MessageRole.assistant) {
       messages[i].content = '[Narration]: ' + messages[i].content;
@@ -39,10 +41,6 @@ export async function react(instanceId: string) {
     },
   });
 
-  console.log(
-    '[generate_narrator_internal_monologue_reaction] messages',
-    messages,
-  );
   const response = await openai.chat.completions.create(
     {
       messages: messages,
