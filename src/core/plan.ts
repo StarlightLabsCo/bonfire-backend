@@ -124,7 +124,7 @@ async function plan(instanceId: string) {
   const response = await openai.chat.completions.create(
     {
       messages: messages,
-      model: 'gpt-4',
+      model: 'gpt-4-32k',
       functions: [
         {
           name: 'generate_narrator_internal_monologue_plan',

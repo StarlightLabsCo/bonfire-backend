@@ -38,6 +38,10 @@ export const MODEL_COSTS = {
     prompt: 0.06 / 1000,
     completion: 0.12 / 1000,
   },
+  'gpt-4-32k-0613': {
+    prompt: 0.06 / 1000,
+    completion: 0.12 / 1000,
+  },
 };
 
 function openAICost(request: OpenAIRequestLog) {

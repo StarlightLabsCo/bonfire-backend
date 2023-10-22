@@ -47,7 +47,7 @@ async function generateSuggestions(
     const response = await openai.chat.completions.create(
       {
         messages: messages,
-        model: 'gpt-4',
+        model: 'gpt-4-32k',
         functions: [
           {
             name: 'generate_action_suggestions',

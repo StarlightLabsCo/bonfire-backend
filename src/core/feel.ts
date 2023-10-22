@@ -44,7 +44,7 @@ export async function react(instanceId: string) {
   const response = await openai.chat.completions.create(
     {
       messages: messages,
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-3.5-turbo-16k',
       functions: [
         {
           name: 'generate_narrator_internal_monologue_reaction',
