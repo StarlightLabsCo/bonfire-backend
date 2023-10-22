@@ -50,10 +50,13 @@ async function initAssemblyWs(ws: ServerWebSocket<WebSocketData>) {
 
   assemblyWs.addEventListener('error', (err) => {
     console.error('Error from AssemblyAI.', err);
+    assemblyWs.close();
+    assemblyWebsockets.delete(ws.data.webSocketToken!.userId);
   });
 
   assemblyWs.addEventListener('close', () => {
     console.log('Disconnected from AssemblyAI.');
+    assemblyWebsockets.delete(ws.data.webSocketToken!.userId);
   });
 
   assemblyWebsockets.set(ws.data.webSocketToken!.userId, assemblyWs);
