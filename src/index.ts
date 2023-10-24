@@ -9,6 +9,7 @@ import { stopAudioHandler } from './handlers/stopAudio';
 
 export type WebSocketData = {
   timeout: Timer | null;
+  heartbeat: Timer | null;
   webSocketToken: WebSocketAuthenticationToken | null;
 };
 
@@ -53,7 +54,12 @@ const server = Bun.serve<WebSocketData>({
         ws.close();
       }, 2000);
 
+      const heartbeat = setInterval(() => {
+        ws.send('ping');
+      }, 30000);
+
       ws.data.timeout = timeout;
+      ws.data.heartbeat = heartbeat;
     },
 
     async message(ws, message) {
@@ -79,6 +85,14 @@ const server = Bun.serve<WebSocketData>({
       console.log(
         'Websocket closed. ' + ws.remoteAddress + ' ' + ws.data.webSocketToken,
       );
+
+      if (ws.data.timeout) {
+        clearTimeout(ws.data.timeout);
+      }
+
+      if (ws.data.heartbeat) {
+        clearInterval(ws.data.heartbeat);
+      }
     },
   },
 });
