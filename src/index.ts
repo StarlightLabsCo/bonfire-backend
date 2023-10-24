@@ -55,7 +55,7 @@ const server = Bun.serve<WebSocketData>({
       }, 2000);
 
       const heartbeat = setInterval(() => {
-        ws.send('ping');
+        ws.ping();
       }, 30000);
 
       ws.data.timeout = timeout;
