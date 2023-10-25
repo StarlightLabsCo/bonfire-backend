@@ -6,6 +6,7 @@ async function stopAudioHandler(
   ws: ServerWebSocket<WebSocketData>,
   data: {
     type: 'stopAudio';
+    payload: {};
   },
 ) {
   const elevenLabsWs = userIdToElevenLabsWs[ws.data.webSocketToken?.userId!];

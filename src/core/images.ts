@@ -5,7 +5,7 @@ import { openai } from '../services/openai';
 import { generateImage } from '../services/sdxl';
 import { getMessages } from './utils';
 import { WebSocketData } from '..';
-import { WebSocketResponseType, send } from '../websocket-schema';
+import { WebSocketResponseType, send } from '../websocket';
 
 async function generateImagePlaceholder(
   ws: ServerWebSocket<WebSocketData>,

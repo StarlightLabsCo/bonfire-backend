@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
-import { WebSocketResponseType, send } from '../websocket-schema';
+import { WebSocketResponseType, send } from '../websocket';
 
 // Documentation: https://www.assemblyai.com/docs/guides/real-time-streaming-transcription
 

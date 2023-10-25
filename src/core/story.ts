@@ -14,7 +14,7 @@ import { plan, planStory } from './plan';
 import { getMessages } from './utils';
 import { generateSuggestions } from './suggestions';
 import { generateImageFromStory, generateImagePlaceholder } from './images';
-import { WebSocketResponseType, send } from '../websocket-schema';
+import { WebSocketResponseType, send } from '../websocket';
 import { react } from './feel';
 import { generateModifierForAction } from './dice';
 

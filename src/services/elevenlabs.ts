@@ -1,6 +1,6 @@
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
-import { WebSocketResponseType, send } from '../websocket-schema';
+import { WebSocketResponseType, send } from '../websocket';
 import db from '../lib/db';
 
 // Documentation: https://docs.elevenlabs.io/api-reference/text-to-speech-websockets
