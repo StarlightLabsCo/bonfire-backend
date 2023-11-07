@@ -6,7 +6,6 @@ import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage, undo } from './handlers/messages';
 import { processVoiceEnd, processVoiceInput } from './handlers/voice';
 import { stopAudioHandler } from './handlers/stopAudio';
-import { generateAdventureSuggestionsHandler } from './handlers/generateAdventureSuggestions';
 import Redis from 'ioredis';
 
 export const redis = new Redis({
