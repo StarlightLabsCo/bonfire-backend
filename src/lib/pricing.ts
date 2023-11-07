@@ -128,7 +128,6 @@ async function hasTokensLeft(
       }, 0)
     );
   }, 0);
-
   console.log(`{${userId}}'s total cost: $${totalCost}}`);
 
   if (totalCost >= 5.0) {

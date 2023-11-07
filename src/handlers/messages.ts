@@ -27,7 +27,6 @@ async function addPlayerMessage(
     return;
   }
 
-  // Normal Operation
   await db.message.create({
     data: {
       instance: {
@@ -43,6 +42,7 @@ async function addPlayerMessage(
   step(ws, data.payload.instanceId);
 }
 
+// TODO: make this better
 async function undo(
   ws: ServerWebSocket<WebSocketData>,
   data: {

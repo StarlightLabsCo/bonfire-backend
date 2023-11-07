@@ -59,8 +59,7 @@ const server = Bun.serve<WebSocketData>({
       return undefined;
     }
 
-    // handle HTTP request normally
-    return new Response('Hello world!');
+    return new Response('Not found', { status: 404 });
   },
   websocket: {
     async open(ws) {
@@ -116,7 +115,5 @@ const server = Bun.serve<WebSocketData>({
   },
 });
 
-console.log(
-  `Connected to Redis on ${redis.options.host}:${redis.options.port}`,
-);
+
 console.log(`Listening on ${server.hostname}:${server.port}`);
