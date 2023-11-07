@@ -7,8 +7,12 @@ import { generateAdventureSuggestions } from '../core/suggestions';
 async function authHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
   const token = data.payload;
 
+  console.log('Authenticating websocket with token: ' + token);
+
   const webSocketToken = await db.webSocketAuthenticationToken.findUnique({
-    where: token,
+    where: {
+      token: token,
+    },
   });
 
   if (!webSocketToken || webSocketToken.expires < new Date()) {
