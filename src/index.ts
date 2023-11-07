@@ -6,32 +6,33 @@ import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage, undo } from './handlers/messages';
 import { processVoiceEnd, processVoiceInput } from './handlers/voice';
 import { stopAudioHandler } from './handlers/stopAudio';
+<<<<<<< HEAD
 import { generateAdventureSuggestionsHandler } from './handlers/generateAdventureSuggestions';
 import Redis from 'ioredis';
 
 export const redis = new Redis({
-  port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379,
-  host: process.env.REDIS_HOST || 'localhost',
-  username: process.env.REDIS_USERNAME,
-  password: process.env.REDIS_PASSWORD,
+  port: process.env.REDISPORT ? parseInt(process.env.REDISPORT) : 6379,
+  host: process.env.REDISHOST || 'localhost',
+  username: process.env.REDISUSER,
+  password: process.env.REDISPASSWORD,
 });
 
 export let connectionIdToWebSocket: {
   [key: string]: ServerWebSocket<WebSocketData> | null;
 } = {};
+=======
+>>>>>>> parent of 9bceb96 (Reliability!!)
 
 export type WebSocketData = {
   timeout: Timer | null;
   heartbeat: Timer | null;
   webSocketToken: WebSocketAuthenticationToken | null;
-  connectionId: string | null;
 };
 
 const handlers: {
   [key: string]: (ws: ServerWebSocket<WebSocketData>, data: any) => void;
 } = {
   auth: authHandler,
-  generateAdventureSuggestions: generateAdventureSuggestionsHandler,
   welcome: welcomeHandler,
   createInstance: createInstanceHandler,
   voice: processVoiceInput,
@@ -47,9 +48,7 @@ const server = Bun.serve<WebSocketData>({
     const success = server.upgrade(req, {
       data: {
         timeout: null,
-        heartbeat: null,
         webSocketToken: null,
-        connectionId: null,
       },
     });
 
@@ -59,8 +58,7 @@ const server = Bun.serve<WebSocketData>({
       return undefined;
     }
 
-    // handle HTTP request normally
-    return new Response('Hello world!');
+    return new Response('Not found', { status: 404 });
   },
   websocket: {
     async open(ws) {
@@ -110,13 +108,12 @@ const server = Bun.serve<WebSocketData>({
       if (ws.data.heartbeat) {
         clearInterval(ws.data.heartbeat);
       }
-
-      connectionIdToWebSocket[ws.data.connectionId!] = null;
     },
   },
 });
 
-console.log(
-  `Connected to Redis on ${redis.options.host}:${redis.options.port}`,
-);
+<<<<<<< HEAD
+
+=======
+>>>>>>> parent of 9bceb96 (Reliability!!)
 console.log(`Listening on ${server.hostname}:${server.port}`);

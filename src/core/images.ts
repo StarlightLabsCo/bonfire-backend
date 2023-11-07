@@ -5,7 +5,7 @@ import { openai } from '../services/openai';
 import { generateImage } from '../services/sdxl';
 import { getMessages } from './utils';
 import { WebSocketData } from '..';
-import { WebSocketResponseType, send } from '../websocket';
+import { WebSocketResponseType, send } from '../websocket-schema';
 
 async function generateImagePlaceholder(
   ws: ServerWebSocket<WebSocketData>,
@@ -115,7 +115,7 @@ async function generateImageFromStory(
             story,
         },
       ],
-      model: 'gpt-4',
+      model: 'gpt-4-1106-preview',
       functions: [
         {
           name: 'generate_image',

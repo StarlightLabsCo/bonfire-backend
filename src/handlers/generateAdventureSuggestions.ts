@@ -13,10 +13,6 @@ async function generateAdventureSuggestionsHandler(
   const canPlay = await hasTokensLeft(ws.data.webSocketToken!.userId, ws);
   if (!canPlay) return;
 
-  console.log(
-    'Generating adventure suggestions for user',
-    ws.data.webSocketToken!.userId,
-  );
   generateAdventureSuggestions(ws, ws.data.webSocketToken!.userId);
 }
 

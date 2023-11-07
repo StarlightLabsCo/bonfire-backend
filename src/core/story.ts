@@ -14,7 +14,7 @@ import { plan, planStory } from './plan';
 import { getMessages } from './utils';
 import { generateSuggestions } from './suggestions';
 import { generateImageFromStory, generateImagePlaceholder } from './images';
-import { WebSocketResponseType, send } from '../websocket';
+import { WebSocketResponseType, send } from '../websocket-schema';
 import { react } from './feel';
 import { generateModifierForAction } from './dice';
 
@@ -52,7 +52,7 @@ async function openaiCompletion(
   const response = await openai.chat.completions.create(
     {
       messages: filteredMessages,
-      model: 'gpt-4-32k',
+      model: 'gpt-4-1106-preview',
       stream: true,
       functions: [
         {

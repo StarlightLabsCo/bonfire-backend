@@ -6,7 +6,7 @@ import {
 import prisma from '../lib/db';
 import { ServerWebSocket } from 'bun';
 import { WebSocketData } from '..';
-import { WebSocketResponseType, send } from '../websocket';
+import { WebSocketResponseType, send } from '../websocket-schema';
 
 export type CompletionModelCost = {
   prompt: number;
@@ -23,10 +23,6 @@ export const MODEL_COSTS = {
     completion: 0.002 / 1000,
   },
   'gpt-3.5-turbo-16k': {
-    prompt: 0.003 / 1000,
-    completion: 0.004 / 1000,
-  },
-  'gpt-3.5-turbo-16k-0613': {
     prompt: 0.003 / 1000,
     completion: 0.004 / 1000,
   },
@@ -128,7 +124,6 @@ async function hasTokensLeft(
       }, 0)
     );
   }, 0);
-
   console.log(`{${userId}}'s total cost: $${totalCost}}`);
 
   if (totalCost >= 5.0) {

@@ -3,7 +3,7 @@ import db from '../lib/db';
 import { openai } from '../services/openai';
 import { getMessages } from './utils';
 import { WebSocketData } from '..';
-import { WebSocketResponseType, send } from '../websocket';
+import { WebSocketResponseType, send } from '../websocket-schema';
 import { Message as OpenAIMessage } from '../services/openai';
 import { MessageRole } from '@prisma/client';
 
@@ -47,7 +47,7 @@ async function generateSuggestions(
     const response = await openai.chat.completions.create(
       {
         messages: messages,
-        model: 'gpt-4-32k',
+        model: 'gpt-4-1106-preview',
         functions: [
           {
             name: 'generate_action_suggestions',
@@ -120,7 +120,7 @@ async function generateSuggestions(
     const validationResponse = await openai.chat.completions.create(
       {
         messages: messages,
-        model: 'gpt-4',
+        model: 'gpt-4-1106-preview',
         functions: [
           {
             name: 'validate_suggestions',
@@ -248,7 +248,7 @@ async function generateAdventureSuggestions(
   const response = await openai.chat.completions.create(
     {
       messages: messages,
-      model: 'gpt-4',
+      model: 'gpt-4-1106-preview',
       temperature: 0.95,
       functions: [
         {
