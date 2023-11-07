@@ -15,7 +15,6 @@ async function createInstanceHandler(
   const canPlay = await hasTokensLeft(data.payload.userId, ws);
   if (!canPlay) return;
 
-  // Normal operation
   try {
     const instance = await prisma.instance.create({
       data: {

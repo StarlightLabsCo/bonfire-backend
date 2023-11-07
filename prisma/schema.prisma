@@ -1,13 +1,14 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 // Next Auth
@@ -52,11 +53,12 @@ model WebSocketAuthenticationToken {
   token   String   @unique
   expires DateTime
 
-  userId String
   user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 }
 
 model User {
+  // User Info
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
@@ -67,12 +69,28 @@ model User {
   sessions                     Session[]
   webSocketAuthenticationToken WebSocketAuthenticationToken[]
 
+  // Payment / Monetization
+  stripeCustomerId String?
+  plan             UserPlan @default(FREE)
+
+  stripeSubscriptionId     String?
+  stripeSubscriptionStatus String?
+
+  // Core
   instances Instance[]
 
-  isTester Boolean @default(false)
+  // Logging / Dataset Collection
+  openAIRequestLog     OpenAIRequestLog[]
+  elevenLabsRequestLog ElevenLabsRequestLog[]
+  replicateRequestLog  ReplicateRequestLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum UserPlan {
+  FREE
+  BASIC
 }
 
 model Instance {
@@ -91,6 +109,27 @@ model Instance {
   updatedAt DateTime @updatedAt
 }
 
+model Message {
+  // Starlight specific
+  id String @id @default(cuid())
+
+  instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
+
+  embedding  Unsupported("vector(1536)")?
+  importance Int?
+  accessedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // OpenAI
+  role         MessageRole
+  content      String
+  name         String?
+  functionCall String?
+}
+
 enum MessageRole {
   system
   assistant
@@ -98,57 +137,48 @@ enum MessageRole {
   user
 }
 
-model Message {
-  id String @id @default(cuid())
-
-  instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId String
-
-  role    MessageRole
-  content String
-
-  openAIRequestLog     OpenAIRequestLog?
-  elevenLabsRequestLog ElevenLabsRequestLog?
-  replicateRequestLog  ReplicateRequestLog?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model OpenAIRequestLog {
   id String @id @default(cuid())
 
-  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId String  @unique
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
 
-  functionName String
+  tag   String? // Starlight specific
+  model String
 
-  requestUrl     String
-  requestHeaders Json
-  requestBody    Json
+  // ** Input **
+  messages String @db.Text // Stringified JSON of the messages
 
-  responseHeaders Json
-  responseBody    String // Needs to be string because can be JSON or SSE events
-  responseTime    Int
+  // ** Output **
+  streamed Boolean @default(false)
 
-  model            String
+  // ---- Non-Streamed ---
+  role         MessageRole?
+  content      String?      @db.Text
+  name         String?
+  functionCall String?
+
+  // ---- Streamed ---
+  response String? @db.Text // SSE stream
+
+  // ---- Both ---
+  responseTime Int
+
   promptTokens     Int
   completionTokens Int
   totalTokens      Int
 
-  streamed Boolean @default(false)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([functionName])
+  @@index([tag])
 }
 
 model ReplicateRequestLog {
   id String @id @default(cuid())
 
-  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId String  @unique
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
 
   prompt         String @db.Text
   negativePrompt String @db.Text
@@ -168,8 +198,8 @@ model ReplicateRequestLog {
 model ElevenLabsRequestLog {
   id String @id @default(cuid())
 
-  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId String  @unique
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
 
   requestedCharacters String
   numCharacters       Int

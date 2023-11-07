@@ -17,8 +17,6 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
   );
 
   elevenWs.addEventListener('open', () => {
-    console.log('Connected to 11 labs.');
-
     elevenWs.send(
       JSON.stringify({
         text: ' ',
@@ -51,7 +49,7 @@ async function initElevenLabsWs(ws: ServerWebSocket<WebSocketData>) {
     console.log('Disconnected from 11 labs.');
   });
 
-  // return elevenWas after it's connected
+  // return elevenWs after it's connected
   return new Promise<WebSocket>((resolve) => {
     elevenWs.addEventListener('open', () => {
       userIdToElevenLabsWs[ws.data.webSocketToken?.userId!] = elevenWs;

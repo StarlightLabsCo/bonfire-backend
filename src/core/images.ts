@@ -115,7 +115,7 @@ async function generateImageFromStory(
             story,
         },
       ],
-      model: 'gpt-4',
+      model: 'gpt-4-1106-preview',
       functions: [
         {
           name: 'generate_image',
