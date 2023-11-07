@@ -1,5 +1,5 @@
 import { ServerWebSocket } from 'bun';
-import { WebSocketData, connectionIdToWebSocket, redis } from '.';
+import { WebSocketData } from '.';
 
 // Place to keep track of all the websocket responses from server to client
 
@@ -24,16 +24,8 @@ type WebSocketResponse = {
   };
 };
 
-async function send(
-  ws: ServerWebSocket<WebSocketData>,
-  data: WebSocketResponse,
-) {
-  const websocket = connectionIdToWebSocket[ws.data.connectionId!];
-  if (websocket && websocket.readyState === 1) {
-    websocket.send(JSON.stringify(data));
-  } else {
-    redis.rpush(ws.data.connectionId!, JSON.stringify(data));
-  }
+function send(ws: ServerWebSocket<WebSocketData>, data: WebSocketResponse) {
+  ws.send(JSON.stringify(data));
 }
 
 export { WebSocketResponse, WebSocketResponseType, send };
