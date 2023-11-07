@@ -47,7 +47,7 @@ async function generateSuggestions(
     const response = await openai.chat.completions.create(
       {
         messages: messages,
-        model: 'gpt-4-1106-preview',
+        model: 'gpt-4-32k-0613',
         functions: [
           {
             name: 'generate_action_suggestions',
@@ -120,7 +120,7 @@ async function generateSuggestions(
     const validationResponse = await openai.chat.completions.create(
       {
         messages: messages,
-        model: 'gpt-4-1106-preview',
+        model: 'gpt-4-32k-0613',
         functions: [
           {
             name: 'validate_suggestions',
@@ -248,7 +248,7 @@ async function generateAdventureSuggestions(
   const response = await openai.chat.completions.create(
     {
       messages: messages,
-      model: 'gpt-4-1106-preview',
+      model: 'gpt-4-32k-0613',
       temperature: 0.95,
       functions: [
         {

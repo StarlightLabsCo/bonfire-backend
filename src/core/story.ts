@@ -52,7 +52,7 @@ async function openaiCompletion(
   const response = await openai.chat.completions.create(
     {
       messages: filteredMessages,
-      model: 'gpt-4-1106-preview',
+      model: 'gpt-4-32k-0613',
       stream: true,
       functions: [
         {

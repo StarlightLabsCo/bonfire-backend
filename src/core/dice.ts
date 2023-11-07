@@ -46,7 +46,7 @@ export async function generateModifierForAction(instanceId: string) {
     const response = await openai.chat.completions.create(
       {
         messages: messages,
-        model: 'gpt-4-1106-preview',
+        model: 'gpt-4-32k-0613',
         functions: [
           {
             name: 'generate_action_dice_modifier',
