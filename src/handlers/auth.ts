@@ -14,9 +14,11 @@ async function authHandler(
 ) {
   const { token, connectionId } = data.payload;
 
+  console.log('Authenticating websocket with token: ' + token);
+
   const webSocketToken = await db.webSocketAuthenticationToken.findUnique({
     where: {
-      token,
+      token: token,
     },
   });
 
