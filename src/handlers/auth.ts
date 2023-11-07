@@ -1,23 +1,14 @@
 import { ServerWebSocket } from 'bun';
-import { WebSocketData, connectionIdToWebSocket, redis } from '..';
+import { WebSocketData } from '..';
 import db from '../lib/db';
+import { hasTokensLeft } from '../lib/pricing';
+import { generateAdventureSuggestions } from '../core/suggestions';
 
-async function authHandler(
-  ws: ServerWebSocket<WebSocketData>,
-  data: {
-    type: 'auth';
-    payload: {
-      token: string;
-      connectionId: string;
-    };
-  },
-) {
-  const { token, connectionId } = data.payload;
+async function authHandler(ws: ServerWebSocket<WebSocketData>, data: any) {
+  const token = data.payload;
 
   const webSocketToken = await db.webSocketAuthenticationToken.findUnique({
-    where: {
-      token,
-    },
+    where: token,
   });
 
   if (!webSocketToken || webSocketToken.expires < new Date()) {
@@ -25,35 +16,19 @@ async function authHandler(
     return;
   } else {
     ws.data.webSocketToken = webSocketToken;
-    ws.data.connectionId = connectionId;
-
-    connectionIdToWebSocket[connectionId] = ws;
-
-    console.log(
-      'Websocket authenticated. User ID: ' +
-        webSocketToken.userId +
-        '. Connection ID: ' +
-        connectionId,
-    );
+    console.log('Websocket authenticated. User ID: ' + webSocketToken.userId);
 
     clearTimeout(ws.data.timeout!);
 
-    // Clear out any old connectionIds from the user
-    const oldKeys = await redis.keys(`${webSocketToken.userId}-*`);
-    const keysToDelete = oldKeys.filter(
-      (key) => key !== `${webSocketToken.userId}-${connectionId}`,
-    );
-    if (keysToDelete.length > 0) {
-      console.log(`Deleting old connection keys: ${keysToDelete}`);
-      await redis.del(...keysToDelete);
-    }
+    // Generating suggestions for adventures
+    const canPlay = await hasTokensLeft(webSocketToken.userId, ws);
+    if (!canPlay) return;
 
-    // Send any queued messages
-    const queuedMessages = await redis.lrange(connectionId, 0, -1);
-    for (const message of queuedMessages) {
-      ws.send(message);
-    }
-    await redis.del(connectionId);
+    console.log(
+      'Generating adventure suggestions for user',
+      webSocketToken.userId,
+    );
+    generateAdventureSuggestions(ws, webSocketToken.userId);
   }
 }
 
