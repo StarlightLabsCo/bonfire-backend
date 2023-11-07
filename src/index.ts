@@ -6,7 +6,6 @@ import { createInstanceHandler } from './handlers/instance';
 import { addPlayerMessage, undo } from './handlers/messages';
 import { processVoiceEnd, processVoiceInput } from './handlers/voice';
 import { stopAudioHandler } from './handlers/stopAudio';
-<<<<<<< HEAD
 import { generateAdventureSuggestionsHandler } from './handlers/generateAdventureSuggestions';
 import Redis from 'ioredis';
 
@@ -20,8 +19,6 @@ export const redis = new Redis({
 export let connectionIdToWebSocket: {
   [key: string]: ServerWebSocket<WebSocketData> | null;
 } = {};
-=======
->>>>>>> parent of 9bceb96 (Reliability!!)
 
 export type WebSocketData = {
   timeout: Timer | null;
@@ -112,8 +109,4 @@ const server = Bun.serve<WebSocketData>({
   },
 });
 
-<<<<<<< HEAD
-
-=======
->>>>>>> parent of 9bceb96 (Reliability!!)
 console.log(`Listening on ${server.hostname}:${server.port}`);
