@@ -54,13 +54,16 @@ function openAICost(request: OpenAIRequestLog) {
     return 0;
   }
 
-  const promptCost =
-    request.promptTokens *
-    MODEL_COSTS[request.model as keyof typeof MODEL_COSTS].prompt;
+  const modelCosts = MODEL_COSTS[request.model as keyof typeof MODEL_COSTS];
 
-  const completionCost =
-    request.completionTokens *
-    MODEL_COSTS[request.model as keyof typeof MODEL_COSTS].completion;
+  if (!modelCosts) {
+    console.error('No model costs found for ' + request.model);
+    return 0;
+  }
+
+  const promptCost = request.promptTokens * modelCosts.prompt;
+
+  const completionCost = request.completionTokens * modelCosts.completion;
 
   return promptCost + completionCost;
 }
