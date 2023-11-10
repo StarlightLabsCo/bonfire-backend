@@ -7,6 +7,7 @@ import { addPlayerMessage, undo } from './handlers/messages';
 import { processVoiceEnd, processVoiceInput } from './handlers/voice';
 import { stopAudioHandler } from './handlers/stopAudio';
 import Redis from 'ioredis';
+import { generateAdventureSuggestionsHandler } from './handlers/generateAdventureSuggestions';
 
 export const redis = new Redis({
   port: process.env.REDISPORT ? parseInt(process.env.REDISPORT) : 6379,
@@ -36,6 +37,7 @@ const handlers: {
   addPlayerMessage: addPlayerMessage,
   undo: undo,
   stopAudio: stopAudioHandler,
+  generateAdventureSuggestions: generateAdventureSuggestionsHandler,
 };
 
 const server = Bun.serve<WebSocketData>({

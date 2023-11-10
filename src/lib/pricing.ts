@@ -50,6 +50,8 @@ function openAICost(request: OpenAIRequestLog) {
     return 0;
   }
 
+  console.log('Calculating cost for model: ' + request.model);
+
   const promptCost =
     request.promptTokens *
     MODEL_COSTS[request.model as keyof typeof MODEL_COSTS].prompt;
