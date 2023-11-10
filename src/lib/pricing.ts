@@ -34,6 +34,10 @@ export const MODEL_COSTS = {
     prompt: 0.003 / 1000,
     completion: 0.006 / 1000,
   },
+  'gpt-4-1106-preview': {
+    prompt: 0.003 / 1000,
+    completion: 0.006 / 1000,
+  },
   'gpt-4-0613': {
     prompt: 0.03 / 1000,
     completion: 0.06 / 1000,
