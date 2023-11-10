@@ -26,6 +26,10 @@ export const MODEL_COSTS = {
     prompt: 0.003 / 1000,
     completion: 0.004 / 1000,
   },
+  'gpt-3.5-turbo-16k-0613': {
+    prompt: 0.003 / 1000,
+    completion: 0.004 / 1000,
+  },
   'gpt-4': {
     prompt: 0.003 / 1000,
     completion: 0.006 / 1000,
@@ -49,8 +53,6 @@ function openAICost(request: OpenAIRequestLog) {
     console.error('No model provided');
     return 0;
   }
-
-  console.log('Calculating cost for model: ' + request.model);
 
   const promptCost =
     request.promptTokens *
